@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>入会者情報編集 | 管理画面</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>入会者情報編集</h1>
+    </header>
+
+    <a href="/admin/monthly-entries" class="top-link">← 入会申請一覧へ戻る</a>
+
+    <form action="/admin/monthly-entries/<%= entry.id %>" method="POST" class="summary-box">
+
+      <div class="form-group">
+        <label>名前</label>
+        <input type="text" value="<%= entry.name || '' %>" disabled>
+      </div>
+
+      <div class="form-group">
+        <label>学校名</label>
+        <input type="text" name="school_name" value="<%= entry.school_name || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>生年月日</label>
+        <input type="date" name="birth_date" value="<%= entry.birth_date || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>コース</label>
+        <select name="course" required>
+          <option value="">選択してください</option>
+          <option value="elementary_wed" <%= entry.course === 'elementary_wed' ? 'selected' : '' %>>小学生週1回（水曜日）</option>
+          <option value="elementary_fri" <%= entry.course === 'elementary_fri' ? 'selected' : '' %>>小学生週1回（金曜日）</option>
+          <option value="elementary_twice" <%= entry.course === 'elementary_twice' ? 'selected' : '' %>>小学生週2回</option>
+          <option value="junior_wed" <%= entry.course === 'junior_wed' ? 'selected' : '' %>>中学生週1回（水曜日）</option>
+          <option value="junior_fri" <%= entry.course === 'junior_fri' ? 'selected' : '' %>>中学生週1回（金曜日）</option>
+          <option value="junior_twice" <%= entry.course === 'junior_twice' ? 'selected' : '' %>>中学生週2回</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>入会月</label>
+        <input type="month" name="start_month" value="<%= entry.start_month || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>SNS掲載</label>
+        <select name="sns_permission" required>
+          <option value="ok" <%= entry.sns_permission === 'ok' ? 'selected' : '' %>>掲載可</option>
+          <option value="limited" <%= entry.sns_permission === 'limited' ? 'selected' : '' %>>顔が分からない形なら可</option>
+          <option value="ng" <%= entry.sns_permission === 'ng' ? 'selected' : '' %>>掲載不可</option>
+        </select>
+      </div>
+
+      <button type="submit" class="submit-button">更新する</button>
+    </form>
+
+    <div class="bottom-actions">
+      <button class="back-button" type="button" onclick="history.back()">戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>

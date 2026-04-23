@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>キャンセル一覧 | 管理画面</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 24px;
+      color: #222;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 24px;
+      font-size: 28px;
+    }
+
+    .top-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .table-wrap {
+      background: #fff;
+      border-radius: 16px;
+      overflow-x: auto;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th,
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    th {
+      background: #fafafa;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .empty {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      th,
+      td {
+        font-size: 13px;
+        padding: 12px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a href="/admin" class="top-link">← 管理画面トップへ戻る</a>
+
+    <h1>キャンセル一覧</h1>
+
+    <% if (!reservations || reservations.length === 0) { %>
+      <div class="empty">
+        キャンセルされた予約はまだありません。
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>プラン</th>
+              <th>日付</th>
+              <th>時間</th>
+              <th>保護者名</th>
+              <th>氏名</th>
+              <th>メール</th>
+              <th>電話</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% reservations.forEach(reservation => { %>
+              <tr>
+                <td><%= reservation.id %></td>
+                <td>
+                  <% if (reservation.plan === 'trial') { %>
+                    無料体験
+                  <% } else if (reservation.plan === 'personal60') { %>
+                    パーソナルレッスン60分
+                  <% } else if (reservation.plan === 'personal30') { %>
+                    パーソナルレッスン30分
+                  <% } else if (reservation.plan === 'reschedule') { %>
+                    月極会員 振替
+                  <% } else { %>
+                    <%= reservation.plan %>
+                  <% } %>
+                </td>
+                <td><%= reservation.date || '' %></td>
+                <td><%= reservation.time || '' %></td>
+                <td><%= reservation.parent_name || '' %></td>
+                <td><%= reservation.child_name || '' %></td>
+                <td><%= reservation.email || '' %></td>
+                <td><%= reservation.phone || '' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>

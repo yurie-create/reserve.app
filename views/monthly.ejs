@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>入会・月謝 | SiegSports</title>
+  <link rel="stylesheet" href="/css/monthly.css">
+</head>
+<body>
+<!-- ヘッダー -->
+<header class="header" style="display:flex; justify-content:space-between; align-items:center;">
+  <h1>SiegSports</h1>
+  <% if (memberId && member) { %>
+    <div style="text-align: right; margin-bottom: 10px;">
+      こんにちは、<strong><%= member.name %></strong>さん
+      <a href="/mypage" style="margin-left: 10px;">マイページ</a>
+      <a href="/logout" style="margin-left: 10px;">ログアウト</a>
+    </div>
+  <% } else { %>
+    <div style="text-align: right; margin-bottom: 10px;">
+      <a href="/members/login">ログイン</a>
+      <a href="/members/new" style="margin-left: 10px;">会員登録</a>
+    </div>
+  <% } %>
+</header>
+
+  <section class="hero">
+    <img src="/images/hero.jpg" alt="メインビジュアル" class="hero-image">
+  </section>
+
+  <nav class="tabs">
+    <button onclick="location.href='/'">予約/振替</button>
+    <button class="active" onclick="location.href='/monthly'">入会</button>
+    <button>カレンダー</button>
+  </nav>
+
+  <section class="monthly-card">
+    <h2 class="monthly-title">月謝会員について</h2>
+  
+    <p class="monthly-text">
+      定期的にスクールへ通いたい方向けの会員プランです。
+    </p>
+  
+    <ul class="monthly-points">
+      <li>継続的な指導で成長をサポート</li>
+    </ul>
+  
+    <a href="/monthly-entry" class="monthly-button">
+      入会手続きへ進む
+    </a>
+    <p class="monthly-note">
+      ※入会手続きには会員登録・ログインが必要です
+    </p>
+  
+  </section>
+
+  <div style="margin: 24px 16px;">
+    <p style="text-align:center; font-size:13px; margin-bottom:8px; color:#666;">
+      ご不明点があればお気軽にお問い合わせください
+    </p>
+  
+    <a href="https://lin.ee/nGbTf8c" target="_blank" class="line-button">
+      LINEでお問い合わせ
+    </a>
+  </div>
+
+</body>
+</html>

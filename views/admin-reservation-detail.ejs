@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>予約詳細 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>予約詳細</h1>
+    </header>
+   
+
+
+    <section class="summary-box">
+      <div class="summary-item">
+        <span class="label">メニュー</span>
+        <span class="value"><%= formatPlan(reservation.plan) %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">日付</span>
+        <span class="value"><%= formattedDate %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">時間</span>
+        <span class="value"><%= reservation.time %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">保護者</span>
+        <span class="value"><%= reservation.parent_name %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">お子さま</span>
+        <span class="value"><%= reservation.child_name %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">ふりがな</span>
+        <span class="value"><%= reservation.child_kana %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">学年</span>
+        <span class="value"><%= reservation.grade %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">メール</span>
+        <span class="value"><%= reservation.email %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">電話</span>
+        <span class="value"><%= reservation.phone %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">備考</span>
+        <span class="value"><%= reservation.note || 'なし' %></span>
+      </div>
+    </section>
+
+    <div class="bottom-actions">
+      <button class="back-button" type="button" onclick="history.back()">戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>

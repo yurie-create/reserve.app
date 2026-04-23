@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>欠席履歴 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>欠席履歴</h1>
+    </header>
+
+    <div class="summary-box">
+      <% if (!absences || absences.length === 0) { %>
+        <p>欠席登録はまだありません。</p>
+      <% } else { %>
+        <% absences.forEach(a => { %>
+          <div class="summary-item">
+            <span class="label">欠席日</span>
+            <span class="value"><%= a.absence_date %></span>
+          </div>
+
+          <% if (a.note) { %>
+            <div class="summary-item">
+              <span class="label">備考</span>
+              <span class="value"><%= a.note %></span>
+            </div>
+          <% } %>
+
+          <hr style="margin: 16px 0; border: none; border-top: 1px solid #eee;">
+        <% }) %>
+      <% } %>
+    </div>
+
+    <div class="bottom-actions">
+      <a href="/mypage" class="back-button">マイページへ戻る</a>
+    </div>
+
+  </div>
+</body>
+</html>

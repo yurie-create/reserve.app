@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理画面 | SiegSports</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 24px;
+    }
+
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 24px;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 16px;
+      text-decoration: none;
+      color: #222;
+      font-weight: 600;
+      font-size: 18px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <h1>管理画面</h1>
+
+    <div class="menu">
+      <a href="/admin/reservations" class="card">
+        予約一覧
+      </a>
+
+      <a href="/admin/slots" class="card">
+        スロット管理
+      </a>
+
+      <a href="/admin/monthly-entries" class="card">
+        入会申請一覧
+      </a>
+
+      <a href="/admin/canceled-reservations" class="card">
+        キャンセル一覧
+      </a>
+
+      <a href="/admin/members" class="card">会員一覧</a>
+    </div>
+
+    <div style="margin-top:20px;">
+        <a href="/admin/logout" class="back-button">ログアウト</a>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

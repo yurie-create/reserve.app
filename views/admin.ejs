@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>予約一覧 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>予約一覧</h1>
+    </header>
+
+    <a href="/admin" class="top-link">← 管理画面トップへ戻る</a>
+
+
+    <section class="calendar-box">
+      <div class="calendar-head">
+        <button class="month-nav" type="button" onclick="changeMonth(-1)">‹</button>
+        <h3 id="calendarTitle">2026年4月</h3>
+        <button class="month-nav" type="button" onclick="changeMonth(1)">›</button>
+      </div>
+    
+      <div class="weekdays">
+        <div>日</div>
+        <div>月</div>
+        <div>火</div>
+        <div>水</div>
+        <div>木</div>
+        <div>金</div>
+        <div>土</div>
+      </div>
+    
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </section>
+
+    <section class="summary-box" id="reservationDetailBox" style="display: none;">
+      <h3 id="reservationDetailTitle">予約詳細</h3>
+      <div id="reservationDetailList"></div>
+    </section>
+
+
+    <% if (false) { %>
+      <section class="section-title">
+        <h2>予約データ</h2>
+      </section>
+
+      <% reservations.forEach(r => { %>
+        <section class="summary-box">
+          <div class="summary-item">
+            <span class="label">メニュー</span>
+            <span class="value"><%= formatPlan(r.plan) %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">日付</span>
+            <span class="value"><%= r.date %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">時間</span>
+            <span class="value"><%= r.time %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">保護者</span>
+            <span class="value"><%= r.parent_name %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">お子さま</span>
+            <span class="value"><%= r.child_name %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">ふりがな</span>
+            <span class="value"><%= r.child_kana %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">学年</span>
+            <span class="value"><%= r.grade %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">メール</span>
+            <span class="value"><%= r.email %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">電話</span>
+            <span class="value"><%= r.phone %></span>
+          </div>
+    
+          <div class="summary-item">
+            <span class="label">備考</span>
+            <span class="value"><%= r.note || 'なし' %></span>
+          </div>
+        </section>
+      <% }) %>
+    <% } %>
+
+  </div>
+
+  <script>
+
+function formatPlan(plan) {
+  if (plan === 'trial') return '無料体験';
+  if (plan === 'personal60' || plan === 'lesson') return 'パーソナルレッスン 60分';
+  if (plan === 'personal30') return 'パーソナルレッスン 30分';
+  if (plan === 'reschedule') return '振替';
+  if (plan === 'elementary_reschedule') return '小学生振替';
+  if (plan === 'junior_reschedule') return '中学生振替';
+  return plan;
+}
+    const reservations = <%- JSON.stringify(reservations) %>;
+    console.log(reservations);
+    let currentYear = 2026;
+    let selectedReservationDate = '';
+    let currentMonth = 4;
+  
+    function changeMonth(diff) { 
+      currentMonth += diff;
+  
+      if (currentMonth < 1) {
+        currentMonth = 12;
+        currentYear -= 1;
+      }
+  
+      if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear += 1;
+      }
+  
+      document.getElementById('calendarTitle').textContent = `${currentYear}年${currentMonth}月`;
+      renderCalendar();
+    }
+  
+    function renderCalendar() {
+      const calendarGrid = document.getElementById('calendarGrid');
+      calendarGrid.innerHTML = '';
+  
+      const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  
+      for (let i = 0; i < firstDay; i++) {
+        calendarGrid.innerHTML += `<div class="day empty"></div>`;
+      }
+  
+      for (let day = 1; day <= daysInMonth; day++) {
+  const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  const hasReservation = reservations.some(r => {
+  return String(r.date).includes(dateStr);
+});
+const count = reservations.filter(r => String(r.date).includes(dateStr)).length;
+
+  if (hasReservation) {
+    calendarGrid.innerHTML += `
+  <button type="button" class="day available" onclick="selectReservationDate('${dateStr}', this)">
+    <div class="day-number">${day}</div>
+    <div class="day-count">●${count}</div>
+  </button>
+`;
+  } else {
+    calendarGrid.innerHTML += `<div class="day disabled">${day}</div>`;
+  }
+}
+    }
+    function selectReservationDate(date, el) {
+  document.querySelectorAll('#calendarGrid .day').forEach(day => {
+    day.classList.remove('selected');
+  });
+
+  el.classList.add('selected');
+  selectedReservationDate = date;
+
+  const dayReservations = reservations.filter(r => String(r.date).includes(date));
+
+  document.getElementById('reservationDetailTitle').textContent = `${date} の予約一覧`;
+
+  const html = dayReservations.map(r => {
+  return `
+    <div class="summary-item">
+      <span class="label">${r.time}</span>
+      <span class="value">
+        <a href="/admin/reservations/${r.id}" class="reservation-link">
+          ${r.child_name}（${r.parent_name}） / ${formatPlan(r.plan)}
+        </a>
+      </span>
+    </div>
+  `;
+}).join('');
+
+  document.getElementById('reservationDetailList').innerHTML = html;
+  document.getElementById('reservationDetailBox').style.display = 'block';
+}
+  
+    renderCalendar();
+  </script>
+</body>
+</html>

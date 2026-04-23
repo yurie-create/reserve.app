@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マイページ | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>マイページ</h1>
+    </header>
+
+    <section class="summary-box">
+      <div class="summary-item">
+        <span class="label">会員情報</span>
+        <span class="value">
+          <a href="/mypage/member">会員情報を見る</a>
+        </span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">予約履歴</span>
+        <span class="value">
+          <a href="/mypage/reservations">予約履歴を見る</a>
+        </span>
+      </div>
+
+      <% if (isMonthlyMember) { %>
+        <div class="summary-item">
+          <span class="label">欠席履歴</span>
+          <span class="value">
+            <a href="/mypage/absences">欠席履歴を見る</a>
+          </span>
+        </div>
+      <% } %>
+
+      <% if (isMonthlyMember) { %>
+        <div class="summary-item">
+          <span class="label">振替予約履歴</span>
+          <span class="value">
+            <a href="/mypage/reschedules">振替予約履歴へ</a>
+          </span>
+        </div>
+      <% } %>
+    </section>
+
+    <div class="bottom-actions">
+      <button class="back-button" type="button" onclick="location.href='/'">トップへ戻る</button>
+    </div>
+
+    <div class="bottom-actions">
+        <button class="back-button" type="button" onclick="location.href='/logout'">
+          ログアウト
+        </button>
+      </div>
+
+  </div>
+</body>
+</html>

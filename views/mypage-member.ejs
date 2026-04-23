@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会員情報 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>会員情報</h1>
+    </header>
+
+    <section class="summary-box">
+      <div class="summary-item">
+        <span class="label">お名前</span>
+        <span class="value"><%= member.name %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">ふりがな</span>
+        <span class="value"><%= member.kana %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">学年 / 年齢</span>
+        <span class="value"><%= member.grade %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">メール</span>
+        <span class="value"><%= member.email %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">電話</span>
+        <span class="value"><%= member.phone %></span>
+      </div>
+
+      <% if (monthlyEntry) { %>
+        
+      
+          <div class="summary-item">
+            <span class="label">学校名</span>
+            <span class="value"><%= monthlyEntry.school_name %></span>
+          </div>
+      
+          <div class="summary-item">
+            <span class="label">生年月日</span>
+            <span class="value"><%= monthlyEntry.birth_date %></span>
+          </div>
+      
+          <div class="summary-item">
+            <span class="label">コース</span>
+            <span class="value"><%= formatCourse(monthlyEntry.course) %></span>
+          </div>
+      
+          <div class="summary-item">
+            <span class="label">入会月</span>
+            <span class="value"><%= monthlyEntry.start_month %></span>
+          </div>
+      
+          <div class="summary-item">
+            <span class="label">SNS掲載</span>
+            <span class="value">
+              <% if (monthlyEntry.sns_permission === 'ok') { %>
+                掲載可
+              <% } else if (monthlyEntry.sns_permission === 'limited') { %>
+                顔が分からない形なら可
+              <% } else { %>
+                掲載不可
+              <% } %>
+            </span>
+          </div>
+        </section>
+      <% } %>
+    
+
+    <div class="bottom-actions">
+      <button class="back-button" onclick="location.href='/mypage'">戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>

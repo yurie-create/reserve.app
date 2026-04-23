@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>振替予約履歴 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>振替予約履歴</h1>
+    </header>
+
+    <% if (!reschedules || reschedules.length === 0) { %>
+      <section class="summary-box">
+        <p>振替予約はまだありません。</p>
+      </section>
+    <% } else { %>
+      <% reschedules.forEach(r => { %>
+        <section class="summary-box">
+          <div class="summary-item">
+            <span class="label">メニュー</span>
+            <span class="value"><%= formatPlan(r.plan) %></span>
+          </div>
+
+          <div class="summary-item">
+            <span class="label">日付</span>
+            <span class="value"><%= r.date %></span>
+          </div>
+
+          <div class="summary-item">
+            <span class="label">時間</span>
+            <span class="value"><%= r.time %></span>
+          </div>
+
+          <p style="margin-top: 12px; font-size: 13px; color: #666; line-height: 1.6;">
+            ※振替予約の変更・キャンセルをご希望の場合はご連絡ください
+          </p>
+        </section>
+      <% }) %>
+    <% } %>
+
+    <div class="bottom-actions">
+      <button class="back-button" onclick="location.href='/mypage'">戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>

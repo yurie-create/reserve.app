@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>予約履歴 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>予約履歴</h1>
+    </header>
+
+    <% if (typeof cancel !== 'undefined') { %>
+      <p style="text-align:center; color:green; margin-top:16px;">
+        予約をキャンセルしました
+      </p>
+    <% } %>
+
+    <%
+      const normalReservations = reservations.filter(r =>
+        r.plan !== 'elementary_reschedule' && r.plan !== 'junior_reschedule'
+      );
+
+      const rescheduleReservations = reservations.filter(r =>
+        r.plan === 'elementary_reschedule' || r.plan === 'junior_reschedule'
+      );
+    %>
+
+    <% if (reservations.length === 0) { %>
+      <p style="text-align:center; margin-top:40px;">予約履歴はまだありません</p>
+    <% } else { %>
+
+      <section class="section-title">
+        <h2>通常予約</h2>
+      </section>
+
+      <% if (normalReservations.length === 0) { %>
+        <section class="summary-box">
+          <p>通常予約はまだありません</p>
+        </section>
+      <% } else { %>
+        <% normalReservations.forEach(r => { %>
+          <section class="summary-box">
+            <div class="summary-item">
+              <span class="label">メニュー</span>
+              <span class="value"><%= formatPlan(r.plan) %></span>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">日付</span>
+              <span class="value"><%= r.date %></span>
+            </div>
+
+            <div class="summary-item">
+              <span class="label">時間</span>
+              <span class="value"><%= r.time %></span>
+            </div>
+
+            <form action="/mypage/reservations/<%= r.id %>/cancel" method="POST" onsubmit="return confirm('この予約をキャンセルしますか？')">
+              <button type="submit" class="back-button">キャンセル</button>
+            </form>
+          </section>
+        <% }) %>
+      <% } %>
+      <% } %>
+      
+    <div class="bottom-actions">
+      <button class="back-button" onclick="location.href='/mypage'">戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>

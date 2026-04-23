@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>月謝会員 入会一覧 | 管理画面</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 24px;
+      color: #222;
+    }
+
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 24px;
+      font-size: 28px;
+    }
+
+    .top-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .table-wrap {
+      background: #fff;
+      border-radius: 16px;
+      overflow-x: auto;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    th,
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    th {
+      background: #fafafa;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .empty {
+      background: #fff;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .small {
+      color: #666;
+      font-size: 12px;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 16px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      th,
+      td {
+        font-size: 13px;
+        padding: 12px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <a href="/admin" class="top-link">← 管理画面トップへ戻る</a>
+
+    <h1>月謝会員 入会一覧</h1>
+
+    <% if (!entries || entries.length === 0) { %>
+      <div class="empty">
+        入会申請はまだありません。
+      </div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>申請日時</th>
+              <th>氏名</th>
+              <th>ふりがな</th>
+              <th>保護者名</th>
+              <th>メール</th>
+              <th>電話</th>
+              <th>学校名</th>
+              <th>生年月日</th>
+              <th>コース</th>
+              <th>入会月</th>
+              <th>SNS掲載</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% entries.forEach(entry => { %>
+              <tr>
+                <td><%= entry.id %></td>
+                <td><%= entry.created_at || '' %></td>
+                <td><%= entry.name || '' %></td>
+                <td><%= entry.kana || '' %></td>
+                <td><%= entry.guardian_name || '' %></td>
+                <td><%= entry.email || '' %></td>
+                <td><%= entry.phone || '' %></td>
+                <td><%= entry.school_name || '' %></td>
+                <td><%= entry.birth_date || '' %></td>
+                <td>
+                  <% if (entry.course === 'elementary_wed') { %>
+                    小学生週1回（水曜16:00〜17:00）
+                  <% } else if (entry.course === 'elementary_fri') { %>
+                    小学生週1回（金曜17:00〜18:00）
+                  <% } else if (entry.course === 'elementary_twice') { %>
+                    小学生週2回
+                  <% } else if (entry.course === 'junior_wed') { %>
+                    中学生週1回（水曜17:30〜18:30）
+                  <% } else if (entry.course === 'junior_fri') { %>
+                    中学生週1回（金曜18:30〜19:30）
+                  <% } else if (entry.course === 'junior_twice') { %>
+                    中学生週2回
+                  <% } else { %>
+                    <%= entry.course || '' %>
+                  <% } %>
+                </td>
+                <td><%= entry.start_month || '' %></td>
+                <td>
+                  <% if (entry.sns_permission === 'ok') { %>
+                    掲載可
+                  <% } else if (entry.sns_permission === 'limited') { %>
+                    顔が分からない形なら可
+                  <% } else if (entry.sns_permission === 'ng') { %>
+                    掲載不可
+                  <% } else { %>
+                    <%= entry.sns_permission || '' %>
+                  <% } %>
+                </td>
+                <td>
+                    <a href="/admin/monthly-entries/<%= entry.id %>/edit">編集</a>
+                  </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</body>
+</html>

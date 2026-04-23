@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>空き枠管理 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>空き枠管理</h1>
+    </header>
+
+    <a href="/admin" class="top-link">← 管理画面トップへ戻る</a>
+
+
+    <% if (error) { %>
+      <div class="error-message">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <% if (success) { %>
+      <div class="success-message">
+        <%= success %>
+      </div>
+    <% } %>
+
+    <section class="section-title">
+      <details class="summary-box">
+        <summary> <h3>空き枠追加</h3> </summary>
+      
+        <form action="/admin/add-slot" method="POST">
+          <div class="form-group">
+            <label>メニュー</label>
+            <select name="menu_id" required>
+              <option value="">選択してください</option>
+              <% menus.forEach(menu => { %>
+                <option value="<%= menu.id %>">
+                  <%= menu.name %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+      
+          <div class="form-group">
+            <label>日付</label>
+            <input type="date" name="date" required>
+          </div>
+      
+          <div class="form-group">
+            <label>開始時間</label>
+            <input type="time" name="start_time" required>
+          </div>
+      
+          <div class="form-group">
+            <label>終了時間</label>
+            <input type="time" name="end_time" required>
+          </div>
+      
+          <div class="form-group">
+            <label>定員</label>
+            <input type="number" name="capacity" value="1" required>
+          </div>
+      
+          <button type="submit" class="submit-button">追加</button>
+        </form>
+      </details>
+
+      <details class="summary-box">
+        <summary><h3>複数日まとめ追加</h3></summary>
+      
+        <form action="/admin/add-slots-bulk" method="POST">
+          <div class="form-group">
+            <label>メニュー</label>
+            <select name="menu_id" required>
+              <option value="">選択してください</option>
+              <% menus.forEach(menu => { %>
+                <option value="<%= menu.id %>"><%= menu.name %></option>
+              <% }) %>
+            </select>
+          </div>
+      
+          <div class="form-group">
+            <label>開始時間</label>
+            <input type="time" name="start_time" required>
+          </div>
+      
+          <div class="form-group">
+            <label>終了時間</label>
+            <input type="time" name="end_time" required>
+          </div>
+      
+          <div class="form-group">
+            <label>定員</label>
+            <input type="number" name="capacity" value="1" required>
+          </div>
+      
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <button type="button" class="month-btn" onclick="changeMonth(-1)">‹</button>
+            <strong id="calendarTitle">2026年4月</strong>
+            <button type="button" class="month-btn" onclick="changeMonth(1)">›</button>
+          </div>
+      
+          <div id="multiDateCalendar"></div>
+      
+          <p id="selectedDatesText">選択中：なし</p>
+          <input type="hidden" name="dates" id="selectedDatesInput">
+      
+          <button type="submit" class="submit-button">まとめて追加</button>
+        </form>
+      </details>
+
+      <details class="summary-box">
+        <summary><h3>曜日パターンで追加</h3></summary>
+      
+        <form action="/admin/add-slots-pattern" method="POST">
+      
+          <div class="form-group">
+            <label>メニュー</label>
+            <select name="menu_id" required>
+              <option value="">選択してください</option>
+              <% menus.forEach(menu => { %>
+                <option value="<%= menu.id %>">
+                  <%= menu.name %>
+                </option>
+              <% }) %>
+            </select>
+          </div>
+      
+          <div class="form-group">
+            <label>曜日</label>
+            <select name="weekday" required>
+              <option value="">選択してください</option>
+              <option value="0">日曜日</option>
+              <option value="1">月曜日</option>
+              <option value="2">火曜日</option>
+              <option value="3">水曜日</option>
+              <option value="4">木曜日</option>
+              <option value="5">金曜日</option>
+              <option value="6">土曜日</option>
+            </select>
+          </div>
+      
+          <div class="form-group">
+            <label>開始日</label>
+            <input type="date" name="start_date" required>
+          </div>
+      
+          <div class="form-group">
+            <label>終了日</label>
+            <input type="date" name="end_date" required>
+          </div>
+      
+          <div class="form-group">
+            <label>開始時間</label>
+            <input type="time" name="start_time" required>
+          </div>
+      
+          <div class="form-group">
+            <label>終了時間</label>
+            <input type="time" name="end_time" required>
+          </div>
+      
+          <div class="form-group">
+            <label>定員</label>
+            <input type="number" name="capacity" value="1" required>
+          </div>
+      
+          <button type="submit" class="submit-button">まとめて追加</button>
+      
+        </form>
+      </details>
+      
+      <h3>空き枠一覧</h3>
+      <form method="GET" action="/admin/slots" class="filter-form">
+        <div class="form-group">
+          <label>開始日</label>
+          <input type="date" name="start_date" value="<%= start_date || '' %>">
+        </div>
+      
+        <div class="form-group">
+          <label>終了日</label>
+          <input type="date" name="end_date" value="<%= end_date || '' %>">
+        </div>
+
+        <div class="form-group">
+          <label>メニュー</label>
+          <select name="menu_id">
+            <option value="">すべて</option>
+            <% menus.forEach(menu => { %>
+              <option value="<%= menu.id %>" <%= menu_id == menu.id ? 'selected' : '' %>>
+                <%= menu.name %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+
+        <button type="submit" class="submit-button">絞り込み</button>
+      </form>
+
+    <% if (slots.length === 0) { %>
+      <p style="text-align:center; margin-top:40px;">空き枠はまだありません</p>
+    <% } %>
+
+    <table class="slot-table">
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>時間</th>
+          <th>メニュー</th>
+          <th>定員</th>
+          <th>予約</th>
+          <th>状態</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+    
+      <tbody>
+        <% slots.forEach(slot => { %>
+          <tr>
+            <td><%= slot.date %></td>
+            <td><%= slot.start_time %>〜<%= slot.end_time %></td>
+            <td><%= slot.menu_name %></td>
+            <td><%= slot.capacity %></td>
+            <td><%= slot.reserved_count %> / <%= slot.capacity %></td>
+            <td class="<%= slot.capacity - slot.reserved_count <= 0 ? 'full' : 'available' %>">
+              <%= slot.capacity - slot.reserved_count <= 0 ? '満席' : '空きあり' %>
+            </td>
+            <td>
+              <form action="/admin/delete-slot" method="POST" onsubmit="return confirm('削除しますか？')">
+                <input type="hidden" name="id" value="<%= slot.id %>">
+                <button type="submit">削除</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <script>
+    const selectedDates = [];
+    let currentYear = 2026;
+    let currentMonth = 4;
+  
+    function renderCalendar() {
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  
+      document.getElementById("calendarTitle").textContent = `${currentYear}年${currentMonth}月`;
+  
+      const calendarHtml = `
+        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:16px;">
+          ${Array.from({ length: daysInMonth }, (_, i) => {
+            const day = i + 1;
+            const date = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const currentDateObj = new Date(date);
+            const isSelected = selectedDates.includes(date);
+            if (currentDateObj < today) {
+  return `<button type="button" class="day disabled">${day}</button>`;
+}
+
+return `<button type="button" class="day ${isSelected ? "selected" : ""}" onclick="toggleDate('${date}', this)">${day}</button>`;
+          }).join("")}
+        </div>
+      `;
+  
+      document.getElementById("multiDateCalendar").innerHTML = calendarHtml;
+    }
+  
+    function toggleDate(date, el) {
+      const index = selectedDates.indexOf(date);
+  
+      if (index >= 0) {
+        selectedDates.splice(index, 1);
+        el.classList.remove("selected");
+      } else {
+        selectedDates.push(date);
+        el.classList.add("selected");
+      }
+  
+      document.getElementById("selectedDatesText").textContent =
+        selectedDates.length > 0
+          ? `選択中：${selectedDates.join(", ")}`
+          : "選択中：なし";
+
+          document.getElementById("selectedDatesInput").value = selectedDates.join(",");
+    }
+  
+    function changeMonth(diff) {
+      currentMonth += diff;
+  
+      if (currentMonth < 1) {
+        currentMonth = 12;
+        currentYear -= 1;
+      }
+  
+      if (currentMonth > 12) {
+        currentMonth = 1;
+        currentYear += 1;
+      }
+  
+      renderCalendar();
+    }
+  
+    renderCalendar();
+  </script>
+</body>
+</html>

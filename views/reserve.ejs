@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>予約 | SiegSports</title>
+  <link rel="stylesheet" href="/css/reserve.css">
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header class="header" style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>SiegSports</h1>
+    <% if (memberId && member) { %>
+      <div style="text-align: right; margin-bottom: 10px;">
+        こんにちは、<strong><%= member.name %></strong>さん
+        <a href="/mypage" style="margin-left: 10px;">マイページ</a>
+        <a href="/logout" style="margin-left: 10px;">ログアウト</a>
+      </div>
+    <% } else { %>
+      <div style="text-align: right; margin-bottom: 10px;">
+        <a href="/members/login">ログイン</a>
+        <a href="/members/new" style="margin-left: 10px;">会員登録</a>
+      </div>
+    <% } %>
+  </header>
+
+  <!-- メインビジュアル -->
+  <section class="hero">
+    <img src="/images/hero.jpg" class="hero-image">
+  </section>
+
+  <!-- タブ -->
+  <nav class="tabs">
+    <button class="active">予約/振替</button>
+    <button onclick="location.href='/monthly'">入会</button>
+    <button>カレンダー</button>
+  </nav>
+
+
+  <!-- メニュー -->
+  <section class="menu-list">
+
+    <% menus
+  .filter(menu =>
+    menu.type !== 'elementary_reschedule' &&
+    menu.type !== 'junior_reschedule' &&
+    !menu.name.includes('30分')
+  )
+  .forEach(menu => { %>
+      <% if (menu.type === 'reschedule') { %>
+        <button class="plan-card" onclick="location.href='/reschedule'">
+      <% } else { %>
+        <button class="plan-card" onclick="location.href='/date-select?plan=<%= menu.type %>'">
+      <% } %>
+  
+          <div class="plan-header">
+            <div>
+              <h3><%= menu.name %></h3>
+              <p><%= menu.description %></p>
+            </div>
+          </div>
+  
+          <p class="price">
+            <% if (menu.price === 0) { %>
+              ¥0
+            <% } else { %>
+              ¥<%= menu.price %>
+            <% } %>
+          </p>
+  
+        </button>
+    <% }) %>
+  
+  </section>
+
+  <!-- LINE問い合わせ -->
+<div style="margin: 24px 16px;">
+  <p style="text-align:center; font-size:13px; margin-bottom:8px; color:#666;">
+    ご不明点があればお気軽にお問い合わせください
+  </p>
+
+  <a href="https://lin.ee/nGbTf8c" target="_blank" class="line-button">
+    LINEでお問い合わせ
+  </a>
+</div>
+
+</body>
+</html>

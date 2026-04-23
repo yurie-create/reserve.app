@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会員予約確認 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>会員予約確認</h1>
+    </header>
+
+
+    <section class="summary-box">
+      <div class="summary-item">
+        <span class="label">メニュー</span>
+        <span class="value"><%= formatPlan(plan) %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">日付</span>
+        <span class="value"><%= date %></span>
+      </div>
+
+      <div class="summary-item">
+        <span class="label">時間</span>
+        <span class="value"><%= time %></span>
+      </div>
+    </section>
+
+    <section class="summary-box">
+        <div class="summary-item">
+          <span class="label">お名前</span>
+          <span class="value"><%= member.name %></span>
+        </div>
+      
+        <div class="summary-item">
+          <span class="label">メール</span>
+          <span class="value"><%= member.email %></span>
+        </div>
+      
+        <div class="summary-item">
+          <span class="label">電話</span>
+          <span class="value"><%= member.phone %></span>
+        </div>
+      </section>
+
+      <form action="/member-reserve" method="POST">
+        <input type="hidden" name="plan" value="<%= plan %>">
+        <input type="hidden" name="date" value="<%= date %>">
+        <input type="hidden" name="time" value="<%= time %>">
+        <input type="hidden" name="slotId" value="<%= slotId %>">
+      
+        <div class="bottom-actions">
+          <button type="submit" class="submit-button">この内容で予約する</button>
+          <button class="back-button" type="button" onclick="history.back()">戻る</button>
+        </div>
+      </form>
+   
+
+  </div>
+</body>
+</html>

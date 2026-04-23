@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日時選択 | SiegSports</title>
+  <link rel="stylesheet" href="/css/date-select.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>SiegSports</h1>
+    </header>
+    <div class="selected-plan">
+        選択中：<strong><%= plan %></strong>
+      </div>
+    <section class="section-title">
+      <h2>日時選択</h2>
+      <p class="desc">ご希望の日付と時間を選択してください</p>
+    </section>
+
+  
+
+
+    <section class="calendar-box">
+      <div class="calendar-head">
+        <button class="month-nav" type="button" onclick="changeMonth(-1)">‹</button>
+        <h3 id="calendarTitle">2026年4月</h3>
+        <button class="month-nav" type="button" onclick="changeMonth(1)">›</button>
+      </div>
+    
+      <div class="weekdays">
+        <div>日</div>
+        <div>月</div>
+        <div>火</div>
+        <div>水</div>
+        <div>木</div>
+        <div>金</div>
+        <div>土</div>
+      </div>
+    
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </section>
+    <p id="selectedDateText">日付未選択</p>
+
+    <div id="timeButtons"></div>
+
+
+
+
+    <section class="time-list" id="timeList" style="display: none;">
+        
+      </section>
+      
+      
+      <div class="booking-actions" id="bookingActions" style="display: none;">
+        <% if (memberId) { %>
+          <button class="login-btn" type="button" onclick="goToMemberReserve()">
+            予約する
+          </button>
+        <% } else { %>
+          <button class="guest-btn" onclick="goToForm()">
+            ゲスト予約
+          </button>
+          <button class="login-btn" type="button" onclick="location.href='/members/login'">
+            ログインして予約
+          </button>
+        <% } %>
+      </div>
+
+      <div class="bottom-actions">
+        <button class="back-button" type="button" onclick="location.href='/'">メニューに戻る</button>
+      </div>
+  
+    </div>
+
+
+
+      <script>
+        let selectedDate = "";
+        let selectedTime = "";
+        let selectedSlotId = "";
+        let currentYear = 2026;
+let currentMonth = 4;
+
+function changeMonth(diff) {
+  currentMonth += diff;
+
+  if (currentMonth < 1) {
+    currentMonth = 12;
+    currentYear -= 1;
+  }
+
+  if (currentMonth > 12) {
+    currentMonth = 1;
+    currentYear += 1;
+  }
+
+  document.getElementById('calendarTitle').textContent = `${currentYear}年${currentMonth}月`;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const calendarGrid = document.getElementById('calendarGrid');
+  calendarGrid.innerHTML = '';
+
+  const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+  // 最初の空白
+  for (let i = 0; i < firstDay; i++) {
+    calendarGrid.innerHTML += `<div class="day empty"></div>`;
+  }
+
+  // 日付
+ for (let day = 1; day <= daysInMonth; day++) {
+  const dateStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const currentDateObj = new Date(dateStr);
+
+  // 過去日は押せない
+  if (currentDateObj < today) {
+    calendarGrid.innerHTML += `<div class="day disabled">${day}</div>`;
+    continue;
+  }
+
+  // その日のslotを取得
+  const daySlots = slots.filter(slot => slot.date === dateStr);
+
+  // 残り枠があるか
+  const hasAvailable = daySlots.some(slot => (slot.capacity - slot.reserved_count) > 0);
+
+  if (hasAvailable) {
+    calendarGrid.innerHTML += `
+    <button type="button" class="day available ${selectedDate === dateStr ? 'selected' : ''}"
+    onclick="selectDateFromDb('${dateStr}', this)">
+        ${day}
+      </button>
+    `;
+  } else {
+    calendarGrid.innerHTML += `<div class="day disabled">${day}</div>`;
+  }
+}
+}
+        function selectDate(el) {
+          document.querySelectorAll('.day').forEach(day => {
+            day.classList.remove('selected');
+          });
+      
+          el.classList.add('selected');
+          selectedDate = el.textContent.trim();
+      
+          document.getElementById('timeList').style.display = 'block';
+          document.getElementById('bookingActions').style.display = 'none';
+      
+          document.querySelectorAll('.time-card').forEach(card => {
+            card.classList.remove('selected');
+          });
+      
+          selectedTime = "";
+        }
+      
+        function selectTime(el, time, slotId) {
+          document.querySelectorAll('.time-card').forEach(card => {
+            card.classList.remove('selected');
+          });
+      
+          el.classList.add('selected');
+          selectedTime = time;
+          selectedSlotId = slotId;
+      
+          document.getElementById('bookingActions').style.display = 'flex';
+        }
+      
+        function goToForm() {
+          const urlParams = new URLSearchParams(window.location.search);
+          const plan = urlParams.get('plan') || "";
+      
+      
+          location.href = `/guest-form?plan=${encodeURIComponent(plan)}&date=${encodeURIComponent(selectedDate)}&time=${encodeURIComponent(selectedTime)}&slotId=${selectedSlotId}`;
+        }
+
+        function goToMemberReserve() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const plan = urlParams.get('plan') || "";
+
+  location.href = `/member-reserve?plan=${encodeURIComponent(plan)}&date=${encodeURIComponent(selectedDate)}&time=${encodeURIComponent(selectedTime)}&slotId=${selectedSlotId}`;
+}
+
+        function selectDateFromDb(date, el) {
+  document.querySelectorAll('.day').forEach(day => {
+    day.classList.remove('selected');
+  });
+
+  el.classList.add('selected');
+
+  selectedDate = date;
+
+  const day = Number(date.split("-")[2]);
+document.getElementById('selectedDateText').textContent = `選択中：2026年4月${day}日`;
+
+  document.getElementById('timeList').style.display = 'block';
+  document.getElementById('bookingActions').style.display = 'none';
+
+  document.querySelectorAll('.time-card').forEach(card => {
+    card.classList.remove('selected');
+  });
+
+  selectedTime = "";
+  const targetSlots = slots.filter(slot => slot.date === date);
+  const html = targetSlots.map(slot => {
+  const remaining = slot.capacity - slot.reserved_count;
+
+  if (remaining <= 0) {
+    return `<button class="time-card" type="button" disabled><div><p class="time-text">${slot.start_time} - ${slot.end_time}</p></div><div class="time-right"><span class="remaining">満席</span></div></button>`;
+  }
+
+  return `<button class="time-card" type="button" onclick="selectTime(this, '${slot.start_time} - ${slot.end_time}', ${slot.id})"><div><p class="time-text">${slot.start_time} - ${slot.end_time}</p></div><div class="time-right"><span class="remaining">残り${remaining}</span><span class="radio"></span></div></button>`;
+}).join("");
+document.getElementById("timeButtons").innerHTML = html;
+document.getElementById('timeList').style.display = 'block';
+}
+
+const slots = <%- JSON.stringify(slots) %>;
+renderCalendar();
+      </script>
+   
+</body>
+</html>

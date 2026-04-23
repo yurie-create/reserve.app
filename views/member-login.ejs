@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>ログイン</h1>
+    </header>
+
+    <% if (registered) { %>
+      <p style="color: green; font-weight: bold;">
+        会員登録が完了しました。ログインしてください。
+      </p>
+    <% } %>
+
+    <% if (msg === 'reschedule') { %>
+      <p style="color: #2563eb; font-weight: bold; margin-bottom: 12px;">
+        振替機能をご利用いただくにはログインが必要です
+      </p>
+    <% } %>
+
+    <form action="/members/login" method="POST" class="summary-box">
+      <div class="form-group">
+        <label>メールアドレス</label>
+        <input type="email" name="email" required>
+      </div>
+
+      <div class="form-group">
+        <label>パスワード</label>
+        <input type="password" name="password" required minlength="8">
+      </div>
+      <input type="hidden" name="next" value="<%= next || '' %>">
+      <button type="submit" class="submit-button">ログイン</button>
+    </form>
+
+    <p style="text-align:center; margin-top:16px;">
+        会員登録がまだの方は
+        <a href="/members/new" style="color:#2563eb; text-decoration:underline;">
+          こちら
+        </a>
+      </p>
+
+    <div class="bottom-actions">
+      <button class="back-button" type="button" onclick="history.back()">戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>

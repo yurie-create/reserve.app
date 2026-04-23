@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>振替・欠席管理 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>振替・欠席管理</h1>
+    </header>
+
+    <% if (done === 'absence') { %>
+        <p style="color:green; text-align:center; margin:16px 0;">
+          欠席登録が完了しました
+        </p>
+      <% } %>
+
+    <div class="summary-box" style="margin-bottom: 20px;">
+      <p style="line-height: 1.8;">
+        欠席登録と振替予約はこちらから行えます。<br>
+        先に欠席登録を行ったうえで、振替予約をご利用ください。
+      </p>
+    </div>
+
+    <!-- 欠席登録 -->
+    <div class="summary-box" style="margin-bottom: 20px;">
+      <h2 style="margin-bottom: 16px;">欠席登録</h2>
+      <p style="margin-bottom: 12px; font-size: 13px; color: #666; line-height: 1.6;">
+        ※ご自身が受講されている曜日のみ欠席登録が可能です
+      </p>
+
+      <form action="/mypage/absences" method="POST">
+        <div class="form-group">
+          <label>欠席日</label>
+          <input type="date" name="absence_date" required>
+        </div>
+        
+
+        <div class="form-group">
+          <label>備考（任意）</label>
+          <textarea name="note"></textarea>
+        </div>
+
+        <button type="submit" class="submit-button">
+          欠席登録する
+        </button>
+      </form>
+    </div>
+
+
+    <!-- 振替予約 -->
+    <div class="summary-box">
+      <h2 style="margin-bottom: 16px;">振替予約</h2>
+
+      <p style="margin-bottom: 16px;">
+        欠席登録後、振替予約が可能になります。
+      </p>
+
+      <% if (course.startsWith('elementary')) { %>
+        <a href="/date-select?plan=elementary_reschedule" class="submit-button">
+          振替予約へ進む
+        </a>
+      <% } %>
+      
+      <% if (course.startsWith('junior')) { %>
+        <a href="/date-select?plan=junior_reschedule" class="submit-button">
+          振替予約へ進む
+        </a>
+      <% } %>
+    </div>
+
+    <div class="bottom-actions">
+        <button class="back-button" type="button" onclick="location.href='/'">メニューに戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>

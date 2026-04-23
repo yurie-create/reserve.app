@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者ログイン | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>管理者ログイン</h1>
+    </header>
+
+    <% if (error) { %>
+      <p style="color: red; text-align: center; margin-bottom: 16px;">
+        IDまたはパスワードが違います
+      </p>
+    <% } %>
+
+    <form action="/admin/login" method="POST" class="summary-box">
+      <div class="form-group">
+        <label>管理者ID</label>
+        <input type="text" name="adminId" required>
+      </div>
+
+      <div class="form-group">
+        <label>パスワード</label>
+        <input type="password" name="password" required>
+      </div>
+
+      <button type="submit" class="submit-button">ログイン</button>
+    </form>
+
+    <div class="bottom-actions">
+      <button class="back-button" type="button" onclick="location.href='/'">トップへ戻る</button>
+    </div>
+
+  </div>
+</body>
+</html>
