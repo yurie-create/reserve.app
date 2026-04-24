@@ -189,44 +189,14 @@
      
 
       <section class="summary-box" style="margin-bottom:24px;">
-        <h2>スロットカレンダー</h2>
-      
-        <div class="slot-calendar">
-          <div class="calendar-head">日</div>
-          <div class="calendar-head">月</div>
-          <div class="calendar-head">火</div>
-          <div class="calendar-head">水</div>
-          <div class="calendar-head">木</div>
-          <div class="calendar-head">金</div>
-          <div class="calendar-head">土</div>
-      
-          <% 
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth() + 1;
-            const firstDay = new Date(year, month - 1, 1).getDay();
-            const daysInMonth = new Date(year, month, 0).getDate();
-      
-            for (let i = 0; i < firstDay; i++) {
-          %>
-            <div class="calendar-day empty"></div>
-          <% } %>
-      
-          <% for (let day = 1; day <= daysInMonth; day++) { 
-            const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const types = groupedSlots[date] || [];
-          %>
-          <div class="calendar-day" onclick="showSlotsByDate('<%= date %>')">
-  <div class="day-number"><%= day %></div>
-      
-              <div class="dot-area">
-                <% types.forEach(type => { %>
-                  <span class="slot-dot <%= type %>"></span>
-                <% }) %>
-              </div>
-            </div>
-          <% } %>
-        </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+  <button type="button" class="month-btn" onclick="changeSlotCalendarMonth(-1)">‹</button>
+  <h2 id="slotCalendarTitle">スロットカレンダー</h2>
+  <button type="button" class="month-btn" onclick="changeSlotCalendarMonth(1)">›</button>
+</div>
+
+<div id="slotCalendar"></div>
+       
         <div id="selectedSlotsBox" style="margin-top:20px;">
   <h3>選択日のスロット</h3>
   <div id="selectedSlotsContent">
@@ -428,7 +398,69 @@
 
     const allSlots = <%- JSON.stringify(slots) %>;
 
+
     let activeDate = null;
+
+    let slotCalendarYear = new Date().getFullYear();
+let slotCalendarMonth = new Date().getMonth() + 1;
+
+function renderSlotCalendar() {
+  const calendar = document.getElementById("slotCalendar");
+  const title = document.getElementById("slotCalendarTitle");
+
+  title.textContent = `${slotCalendarYear}年${slotCalendarMonth}月`;
+
+  const firstDay = new Date(slotCalendarYear, slotCalendarMonth - 1, 1).getDay();
+  const daysInMonth = new Date(slotCalendarYear, slotCalendarMonth, 0).getDate();
+
+  let html = `
+    <div class="slot-calendar">
+      <div class="calendar-head">日</div>
+      <div class="calendar-head">月</div>
+      <div class="calendar-head">火</div>
+      <div class="calendar-head">水</div>
+      <div class="calendar-head">木</div>
+      <div class="calendar-head">金</div>
+      <div class="calendar-head">土</div>
+  `;
+
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="calendar-day empty"></div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${slotCalendarYear}-${String(slotCalendarMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const daySlots = allSlots.filter(slot => slot.date === date);
+
+    html += `
+      <div class="calendar-day" onclick="showSlotsByDate('${date}', this)">
+        <div class="day-number">${day}</div>
+        <div class="dot-area">
+          ${daySlots.map(slot => `<span class="slot-dot ${slot.menu_type}"></span>`).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  calendar.innerHTML = html;
+}
+
+function changeSlotCalendarMonth(diff) {
+  slotCalendarMonth += diff;
+
+  if (slotCalendarMonth < 1) {
+    slotCalendarMonth = 12;
+    slotCalendarYear--;
+  }
+
+  if (slotCalendarMonth > 12) {
+    slotCalendarMonth = 1;
+    slotCalendarYear++;
+  }
+
+  renderSlotCalendar();
+}
     function showSlotsByDate(date) {
   activeDate = date;
 
@@ -447,6 +479,8 @@
     box.innerHTML = `<p>${date} のスロットはありません</p>`;
     return;
   }
+
+
 
   box.innerHTML = `
     <table class="slot-table">
@@ -471,6 +505,8 @@
     </table>
   `;
 }
+
+renderSlotCalendar();
 
   </script>
 </body>
