@@ -68,6 +68,12 @@ db.serialize(() => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  db.run(`ALTER TABLE reservations ADD COLUMN status TEXT DEFAULT 'active'`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('statusカラム追加エラー:', err);
+    }
+  });
+
 
   db.run(`
     CREATE TABLE IF NOT EXISTS absences (
