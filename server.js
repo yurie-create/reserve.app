@@ -653,10 +653,18 @@ app.get('/reschedule', (req, res) => {
     `;
   
     db.all(slotsSql, params, (err, slots) => {
-      if (err) return res.status(500).send('slots取得エラー');
+      if (err) {
+        console.error('admin/slots slots取得エラー詳細:', err);
+        console.error('実行SQL:', slotsSql);
+        console.error('params:', params);
+        return res.status(500).send('slots取得エラー');
+      }
   
       db.all(menusSql, (err, menus) => {
-        if (err) return res.status(500).send('menus取得エラー');
+        if (err) {
+          console.error('admin/slots menus取得エラー詳細:', err);
+          return res.status(500).send('menus取得エラー');
+        }
   
         res.render('admin-slots', {
           slots,
