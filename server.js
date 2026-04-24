@@ -1894,6 +1894,24 @@ db.run(updateSql, [reservationId], function (err) {
     });
   });
 
+  app.get("/seed-reschedule", (req, res) => {
+    const menus = [
+      ["小学生振替", 0, "elementary_reschedule", "小学生用振替", 1, 6],
+      ["中学生振替", 0, "junior_reschedule", "中学生用振替", 1, 7]
+    ];
+  
+    const sql = `
+      INSERT INTO menus (name, price, type, description, is_active, sort_order)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+  
+    menus.forEach(menu => {
+      db.run(sql, menu);
+    });
+  
+    res.send("振替メニュー追加しました");
+  });
+
   app.listen(PORT, () => {
     console.log("server start");
   });
