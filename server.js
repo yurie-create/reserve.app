@@ -551,29 +551,12 @@ app.get('/reschedule', (req, res) => {
     });
   });
 
-  app.get("/menus-test", (req, res) => {
-    db.all("SELECT id, name, type FROM menus", (err, rows) => {
-      if (err) {
-        console.error(err);
-        return res.send("menus取得エラー");
-      }
-      res.send(rows);
-    });
-  });
+  
 
 
   
 
-  app.get("/slots-test", (req, res) => {
-    db.all("SELECT * FROM slots", (err, rows) => {
-      if (err) {
-        console.error(err);
-        return res.send("slots取得エラー");
-      }
   
-      res.send(rows);
-    });
-  });
   app.get('/admin/slots', requireAdmin,(req, res) => {
     const error = req.query.error || '';
     const success = req.query.success || '';
@@ -1902,38 +1885,7 @@ db.run(updateSql, [reservationId], function (err) {
     });
   });
 
-  app.get("/seed-reschedule", (req, res) => {
-    const menus = [
-      ["小学生振替", 0, "elementary_reschedule", "小学生用振替", 1, 6],
-      ["中学生振替", 0, "junior_reschedule", "中学生用振替", 1, 7]
-    ];
-  
-    const sql = `
-      INSERT INTO menus (name, price, type, description, is_active, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-  
-    menus.forEach(menu => {
-      db.run(sql, menu);
-    });
-  
-    res.send("振替メニュー追加しました");
-  });
-
-
-  app.get("/delete-30min", (req, res) => {
-    const menuId = 3; // ←ここを確認したIDに変更
-  
-    db.run("DELETE FROM slots WHERE menu_id = ?", [menuId], (err) => {
-      if (err) return res.send("slots削除失敗");
-  
-      db.run("DELETE FROM menus WHERE id = ?", [menuId], (err) => {
-        if (err) return res.send("menus削除失敗");
-  
-        res.send("30分メニュー削除完了");
-      });
-    });
-  });
+ 
 
   app.listen(PORT, () => {
     console.log("server start");
