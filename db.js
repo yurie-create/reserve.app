@@ -68,4 +68,76 @@ db.run(`
 
 });
 
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      kana TEXT,
+      grade TEXT,
+      email TEXT,
+      phone TEXT,
+      guardian_name TEXT,
+      note TEXT,
+      password TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS menus (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      type TEXT,
+      price INTEGER,
+      description TEXT
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS slots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      menu_id INTEGER,
+      date TEXT,
+      start_time TEXT,
+      end_time TEXT,
+      capacity INTEGER,
+      is_active INTEGER DEFAULT 1
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS reservations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      plan TEXT,
+      slot_id INTEGER,
+      date TEXT,
+      time TEXT,
+      parent_name TEXT,
+      child_name TEXT,
+      child_kana TEXT,
+      grade TEXT,
+      email TEXT,
+      phone TEXT,
+      note TEXT,
+      status TEXT DEFAULT 'active'
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS absences (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      member_id INTEGER,
+      used INTEGER DEFAULT 0
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS monthly_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      member_id INTEGER,
+      course TEXT
+    )
+  `);
+});
+
 module.exports = db;
