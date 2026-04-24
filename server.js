@@ -1920,6 +1920,21 @@ db.run(updateSql, [reservationId], function (err) {
     res.send("振替メニュー追加しました");
   });
 
+
+  app.get("/delete-30min", (req, res) => {
+    const menuId = 3; // ←ここを確認したIDに変更
+  
+    db.run("DELETE FROM slots WHERE menu_id = ?", [menuId], (err) => {
+      if (err) return res.send("slots削除失敗");
+  
+      db.run("DELETE FROM menus WHERE id = ?", [menuId], (err) => {
+        if (err) return res.send("menus削除失敗");
+  
+        res.send("30分メニュー削除完了");
+      });
+    });
+  });
+
   app.listen(PORT, () => {
     console.log("server start");
   });
