@@ -487,3 +487,80 @@
   background-color: #ccc;
   cursor: not-allowed;
 }
+
+.slot-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.calendar-head {
+  text-align: center;
+  font-weight: bold;
+  font-size: 13px;
+  color: #555;
+}
+
+.calendar-day {
+  min-height: 54px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 6px;
+  background: #fff;
+}
+
+.calendar-day.empty {
+  background: transparent;
+  border: none;
+}
+
+.day-number {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.dot-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.slot-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.slot-dot.trial {
+  background: #2563eb;
+}
+
+.slot-dot.lesson {
+  background: #16a34a;
+}
+
+.slot-dot.elementary_reschedule {
+  background: #f59e0b;
+}
+
+.slot-dot.junior_reschedule {
+  background: #ea580c;
+}
+
+.selected-slot-item {
+  padding: 10px 12px;
+  margin-top: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  line-height: 1.6;
+}
+
+.calendar-day.active {
+  background-color: #2563eb;
+  color: white;
+  border: 2px solid #1d4ed8;
+}

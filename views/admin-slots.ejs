@@ -7,6 +7,16 @@
   <link rel="stylesheet" href="/css/guest-form.css">
 </head>
 <body>
+  <%
+  const groupedSlots = {};
+
+  slots.forEach(slot => {
+    if (!groupedSlots[slot.date]) {
+      groupedSlots[slot.date] = [];
+    }
+    groupedSlots[slot.date].push(slot.menu_type);
+  });
+%>
   <div class="page">
 
     <header class="header">
@@ -176,7 +186,56 @@
         </form>
       </details>
       
-      <h3>空き枠一覧</h3>
+     
+
+      <section class="summary-box" style="margin-bottom:24px;">
+        <h2>スロットカレンダー</h2>
+      
+        <div class="slot-calendar">
+          <div class="calendar-head">日</div>
+          <div class="calendar-head">月</div>
+          <div class="calendar-head">火</div>
+          <div class="calendar-head">水</div>
+          <div class="calendar-head">木</div>
+          <div class="calendar-head">金</div>
+          <div class="calendar-head">土</div>
+      
+          <% 
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1;
+            const firstDay = new Date(year, month - 1, 1).getDay();
+            const daysInMonth = new Date(year, month, 0).getDate();
+      
+            for (let i = 0; i < firstDay; i++) {
+          %>
+            <div class="calendar-day empty"></div>
+          <% } %>
+      
+          <% for (let day = 1; day <= daysInMonth; day++) { 
+            const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const types = groupedSlots[date] || [];
+          %>
+          <div class="calendar-day" onclick="showSlotsByDate('<%= date %>')">
+  <div class="day-number"><%= day %></div>
+      
+              <div class="dot-area">
+                <% types.forEach(type => { %>
+                  <span class="slot-dot <%= type %>"></span>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
+        </div>
+        <div id="selectedSlotsBox" style="margin-top:20px;">
+  <h3>選択日のスロット</h3>
+  <div id="selectedSlotsContent">
+    日付を選択してください
+  </div>
+</div>
+      </section>
+    
+<h2>空き枠一覧</h2>
       <form method="GET" action="/admin/slots" class="filter-form">
         <div class="form-group">
           <label>開始日</label>
@@ -366,6 +425,53 @@
 }
 
     renderCalendar();
+
+    const allSlots = <%- JSON.stringify(slots) %>;
+
+    let activeDate = null;
+    function showSlotsByDate(date) {
+  activeDate = date;
+
+  // 全部のカレンダーセルからactive削除
+  document.querySelectorAll(".calendar-day").forEach(el => {
+    el.classList.remove("active");
+  });
+
+  // クリックされたセルにactive付ける
+  event.currentTarget.classList.add("active");
+
+  const selected = allSlots.filter(slot => slot.date === date);
+  const box = document.getElementById("selectedSlotsContent");
+
+  if (selected.length === 0) {
+    box.innerHTML = `<p>${date} のスロットはありません</p>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <table class="slot-table">
+      <thead>
+        <tr>
+          <th>メニュー</th>
+          <th>時間</th>
+          <th>定員</th>
+          <th>予約数</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${selected.map(slot => `
+          <tr>
+            <td>${slot.menu_name}</td>
+            <td>${slot.start_time} - ${slot.end_time}</td>
+            <td>${slot.capacity}</td>
+            <td>${slot.reserved_count}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
   </script>
 </body>
 </html>

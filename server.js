@@ -565,10 +565,11 @@ app.get('/reschedule', (req, res) => {
     const menu_id = req.query.menu_id || '';
   
     let slotsSql = `
-      SELECT
-        slots.*,
-        menus.name AS menu_name,
-        COUNT(reservations.id) AS reserved_count
+    SELECT
+    slots.*,
+    menus.name AS menu_name,
+    menus.type AS menu_type,
+    COUNT(reservations.id) AS reserved_count
       FROM slots
       JOIN menus ON slots.menu_id = menus.id
       LEFT JOIN reservations
