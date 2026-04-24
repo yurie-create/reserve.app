@@ -73,6 +73,11 @@ db.serialize(() => {
       console.error('statusカラム追加エラー:', err);
     }
   });
+  db.run(`ALTER TABLE reservations ADD COLUMN member_id INTEGER`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('member_idカラム追加エラー:', err);
+    }
+  });
 
 
   db.run(`
