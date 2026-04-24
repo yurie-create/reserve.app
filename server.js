@@ -470,7 +470,7 @@ app.get('/reschedule', (req, res) => {
               html: `
                 <h2>ご予約ありがとうございます</h2>
   
-                <p>${parentName} 様</p>
+                <p>${parentName || cleanChildName} 様</p>
   
                 <p>
                   この度はジークスポーツのご予約ありがとうございます。<br>
@@ -551,49 +551,10 @@ app.get('/reschedule', (req, res) => {
     });
   });
 
-  app.get("/seed-menus", (req, res) => {
-    const menus = [
-      ["無料体験", 0, "trial", "初回体験", 1, 1],
-      ["パーソナル60分", 6000, "lesson", "60分レッスン", 1, 2],
-      ["パーソナル30分", 4000, "lesson", "30分レッスン", 1, 3],
-      ["月謝", 6000, "subscription", "定期スクール", 1, 4],
-      ["振替", 0, "reschedule", "振替予約", 1, 5]
-    ];
   
-    const sql = `
-      INSERT INTO menus (name, price, type, description, is_active, sort_order)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-  
-    menus
-    .filter(menu => menu.type !== 'personal30')
-    .forEach(menu => {
-      db.run(sql, menu);
-    });
-  
-    res.send("menusデータを追加しました");
-  });
 
 
-  app.get("/seed-slots", (req, res) => {
-    const slots = [
-      [1, "2026-04-18", "16:30", "17:20", 3, 1],
-      [1, "2026-04-18", "17:30", "18:20", 2, 1],
-      [1, "2026-04-19", "16:30", "17:20", 3, 1],
-      [2, "2026-04-20", "10:00", "11:00", 1, 1]
-    ];
   
-    const sql = `
-      INSERT INTO slots (menu_id, date, start_time, end_time, capacity, is_active)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-  
-    slots.forEach(slot => {
-      db.run(sql, slot);
-    });
-  
-    res.send("slotsデータを追加しました");
-  });
 
   app.get("/slots-test", (req, res) => {
     db.all("SELECT * FROM slots", (err, rows) => {
@@ -1832,7 +1793,7 @@ db.run(updateSql, [reservationId], function (err) {
   
     db.all(sql, [], (err, members) => {
       if (err) {
-        console.error(err);
+        console.error('会員一覧取得エラー詳細:', err);
         return res.status(500).send('会員一覧の取得に失敗しました');
       }
   
