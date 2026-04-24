@@ -98,6 +98,11 @@ db.serialize(() => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  db.run(`ALTER TABLE monthly_entries ADD COLUMN start_month TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('start_monthカラム追加エラー:', err);
+    }
+  });
 });
 
 module.exports = db;
