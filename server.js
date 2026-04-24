@@ -8,6 +8,9 @@ require('dotenv').config();
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const bcrypt = require('bcrypt');
+const PORT = process.env.PORT || 3000;
+
+
 
 
 app.use(express.urlencoded({ extended: true }));
@@ -1922,6 +1925,6 @@ db.run(updateSql, [reservationId], function (err) {
     });
   });
 
-app.listen(3000, () => {
-  console.log("http://localhost:3000");
-});
+  app.listen(PORT, () => {
+    console.log("server start");
+  });
