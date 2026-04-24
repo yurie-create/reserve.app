@@ -551,7 +551,15 @@ app.get('/reschedule', (req, res) => {
     });
   });
 
-  
+  app.get("/menus-test", (req, res) => {
+    db.all("SELECT id, name, type FROM menus", (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.send("menus取得エラー");
+      }
+      res.send(rows);
+    });
+  });
 
 
   
