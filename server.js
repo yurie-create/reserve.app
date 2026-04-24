@@ -1937,24 +1937,6 @@ db.run(updateSql, [reservationId], function (err) {
 
  
 
-  app.get("/update-menu-description", requireAdmin, (req, res) => {
-    db.run(
-      `
-      UPDATE menus
-      SET description = ?
-      WHERE type = ?
-      `,
-      ["スクール生は2,000円引きで受講可能", "lesson"],
-      function (err) {
-        if (err) {
-          console.error(err);
-          return res.send("更新失敗");
-        }
-  
-        res.send("更新しました");
-      }
-    );
-  });
 
   app.listen(PORT, () => {
     console.log("server start");
