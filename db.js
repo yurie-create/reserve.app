@@ -126,6 +126,32 @@ db.serialize(() => {
       console.error('start_monthカラム追加エラー:', err);
     }
   });
+  db.run(`ALTER TABLE monthly_entries ADD COLUMN school_name TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('school_nameカラム追加エラー:', err);
+    }
+  });
+  
+  db.run(`ALTER TABLE monthly_entries ADD COLUMN birth_date TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('birth_dateカラム追加エラー:', err);
+    }
+  });
+  
+  db.run(`ALTER TABLE monthly_entries ADD COLUMN course TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('courseカラム追加エラー:', err);
+    }
+  });
+
+  db.run(`ALTER TABLE monthly_entries ADD COLUMN sns_permission TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('sns_permissionカラム追加エラー:', err);
+    }
+  });
+
+
+
 });
 
 module.exports = db;
