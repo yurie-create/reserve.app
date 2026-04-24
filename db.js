@@ -90,6 +90,24 @@ db.serialize(() => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  db.run(`ALTER TABLE absences ADD COLUMN absence_date TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('absence_dateカラム追加エラー:', err);
+    }
+  });
+  
+  db.run(`ALTER TABLE absences ADD COLUMN note TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('noteカラム追加エラー:', err);
+    }
+  });
+  
+  db.run(`ALTER TABLE absences ADD COLUMN used INTEGER DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('usedカラム追加エラー:', err);
+    }
+  });
+
 
   db.run(`
     CREATE TABLE IF NOT EXISTS monthly_entries (
