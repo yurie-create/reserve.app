@@ -439,3 +439,51 @@
   text-decoration: none;
   font-weight: 600;
 }
+
+.menu-checkbox-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.menu-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 600;
+}
+
+.menu-checkbox-item input {
+  width: 18px;
+  height: 18px;
+}
+
+.delete-button {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 10px 16px;
+  background-color: #e53935; /* 赤 */
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.delete-button:hover {
+  background-color: #c62828; /* 濃い赤 */
+}
+
+.delete-button:active {
+  transform: scale(0.97);
+}
+
+.delete-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}

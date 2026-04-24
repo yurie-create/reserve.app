@@ -35,14 +35,14 @@
         <form action="/admin/add-slot" method="POST">
           <div class="form-group">
             <label>メニュー</label>
-            <select name="menu_id" required>
-              <option value="">選択してください</option>
+            <div class="menu-checkbox-list">
               <% menus.forEach(menu => { %>
-                <option value="<%= menu.id %>">
-                  <%= menu.name %>
-                </option>
+                <label class="menu-checkbox-item">
+                  <input type="checkbox" name="menu_ids" value="<%= menu.id %>">
+                  <span><%= menu.name %></span>
+                </label>
               <% }) %>
-            </select>
+            </div>
           </div>
       
           <div class="form-group">
@@ -65,7 +65,7 @@
             <input type="number" name="capacity" value="1" required>
           </div>
       
-          <button type="submit" class="submit-button">追加</button>
+          <button type="submit" class="submit-button" onclick="return validateMenus()">追加</button>
         </form>
       </details>
 
@@ -75,12 +75,14 @@
         <form action="/admin/add-slots-bulk" method="POST">
           <div class="form-group">
             <label>メニュー</label>
-            <select name="menu_id" required>
-              <option value="">選択してください</option>
+            <div class="menu-checkbox-list">
               <% menus.forEach(menu => { %>
-                <option value="<%= menu.id %>"><%= menu.name %></option>
+                <label class="menu-checkbox-item">
+                  <input type="checkbox" name="menu_ids" value="<%= menu.id %>">
+                  <span><%= menu.name %></span>
+                </label>
               <% }) %>
-            </select>
+            </div>
           </div>
       
           <div class="form-group">
@@ -109,7 +111,7 @@
           <p id="selectedDatesText">選択中：なし</p>
           <input type="hidden" name="dates" id="selectedDatesInput">
       
-          <button type="submit" class="submit-button">まとめて追加</button>
+          <button type="submit" class="submit-button" onclick="return validateMenus()">まとめて追加</button>
         </form>
       </details>
 
@@ -120,14 +122,14 @@
       
           <div class="form-group">
             <label>メニュー</label>
-            <select name="menu_id" required>
-              <option value="">選択してください</option>
+            <div class="menu-checkbox-list">
               <% menus.forEach(menu => { %>
-                <option value="<%= menu.id %>">
-                  <%= menu.name %>
-                </option>
+                <label class="menu-checkbox-item">
+                  <input type="checkbox" name="menu_ids" value="<%= menu.id %>">
+                  <span><%= menu.name %></span>
+                </label>
               <% }) %>
-            </select>
+            </div>
           </div>
       
           <div class="form-group">
@@ -169,7 +171,7 @@
             <input type="number" name="capacity" value="1" required>
           </div>
       
-          <button type="submit" class="submit-button">まとめて追加</button>
+          <button type="submit" class="submit-button" onclick="return validateMenus()">まとめて追加</button>
       
         </form>
       </details>
@@ -205,10 +207,13 @@
       <p style="text-align:center; margin-top:40px;">空き枠はまだありません</p>
     <% } %>
 
+    <form action="/admin/slots/delete-selected" method="POST">
     <table class="slot-table">
       <thead>
         <tr>
+          <th>選択</th>
           <th>日付</th>
+          <th>曜日</th>
           <th>時間</th>
           <th>メニュー</th>
           <th>定員</th>
@@ -221,7 +226,17 @@
       <tbody>
         <% slots.forEach(slot => { %>
           <tr>
+            <td>
+              <input type="checkbox" name="slot_ids" value="<%= slot.id %>">
+            </td>
             <td><%= slot.date %></td>
+            <td>
+              <% 
+                const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+                const day = new Date(slot.date).getDay();
+              %>
+              <%= weekDays[day] %>
+            </td>
             <td><%= slot.start_time %>〜<%= slot.end_time %></td>
             <td><%= slot.menu_name %></td>
             <td><%= slot.capacity %></td>
@@ -230,46 +245,79 @@
               <%= slot.capacity - slot.reserved_count <= 0 ? '満席' : '空きあり' %>
             </td>
             <td>
-              <form action="/admin/delete-slot" method="POST" onsubmit="return confirm('削除しますか？')">
-                <input type="hidden" name="id" value="<%= slot.id %>">
-                <button type="submit">削除</button>
-              </form>
+              <button
+              type="submit"
+              class="delete-button"
+              formaction="/admin/delete-slot"
+              formmethod="POST"
+              name="id"
+              value="<%= slot.id %>"
+              onclick="event.stopPropagation(); return confirm('このスロットを削除しますか？')"
+            >
+              削除
+            </button>
             </td>
           </tr>
         <% }) %>
       </tbody>
     </table>
+    <button
+    type="submit"
+    class="delete-button"
+    onclick="return confirm('選択したスロットを削除しますか？')"
+  >
+    選択したスロットを削除
+  </button>
+  </form>
   <script>
     const selectedDates = [];
     let currentYear = 2026;
     let currentMonth = 4;
   
     function renderCalendar() {
-      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-  
-      document.getElementById("calendarTitle").textContent = `${currentYear}年${currentMonth}月`;
-  
-      const calendarHtml = `
-        <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:16px;">
-          ${Array.from({ length: daysInMonth }, (_, i) => {
-            const day = i + 1;
-            const date = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            const today = new Date();
-today.setHours(0, 0, 0, 0);
+  const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+  const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
 
-const currentDateObj = new Date(date);
-            const isSelected = selectedDates.includes(date);
-            if (currentDateObj < today) {
-  return `<button type="button" class="day disabled">${day}</button>`;
-}
+  document.getElementById("calendarTitle").textContent = `${currentYear}年${currentMonth}月`;
 
-return `<button type="button" class="day ${isSelected ? "selected" : ""}" onclick="toggleDate('${date}', this)">${day}</button>`;
-          }).join("")}
-        </div>
-      `;
-  
-      document.getElementById("multiDateCalendar").innerHTML = calendarHtml;
+  let daysHtml = "";
+
+  // 月初の曜日に合わせて空白を入れる
+  for (let i = 0; i < firstDay; i++) {
+    daysHtml += `<div class="day empty"></div>`;
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const currentDateObj = new Date(date);
+    const isSelected = selectedDates.includes(date);
+
+    if (currentDateObj < today) {
+      daysHtml += `<button type="button" class="day disabled">${day}</button>`;
+    } else {
+      daysHtml += `<button type="button" class="day ${isSelected ? "selected" : ""}" onclick="toggleDate('${date}', this)">${day}</button>`;
     }
+  }
+
+  const calendarHtml = `
+    <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:16px;">
+      <div style="text-align:center; font-weight:bold;">日</div>
+      <div style="text-align:center; font-weight:bold;">月</div>
+      <div style="text-align:center; font-weight:bold;">火</div>
+      <div style="text-align:center; font-weight:bold;">水</div>
+      <div style="text-align:center; font-weight:bold;">木</div>
+      <div style="text-align:center; font-weight:bold;">金</div>
+      <div style="text-align:center; font-weight:bold;">土</div>
+      ${daysHtml}
+    </div>
+  `;
+
+  document.getElementById("multiDateCalendar").innerHTML = calendarHtml;
+}
   
     function toggleDate(date, el) {
       const index = selectedDates.indexOf(date);
@@ -306,6 +354,17 @@ return `<button type="button" class="day ${isSelected ? "selected" : ""}" onclic
       renderCalendar();
     }
   
+    function validateMenus() {
+  const checked = document.querySelectorAll('input[name="menu_ids"]:checked');
+
+  if (checked.length === 0) {
+    alert("メニューを選択してください");
+    return false;
+  }
+
+  return true;
+}
+
     renderCalendar();
   </script>
 </body>

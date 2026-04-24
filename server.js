@@ -597,13 +597,17 @@ app.get('/reschedule', (req, res) => {
       GROUP BY slots.id
       ORDER BY slots.date, slots.start_time
     `;
-  
     const menusSql = `
-      SELECT * FROM menus
-      WHERE is_active = 1
-      ORDER BY id
-    `;
-  
+    SELECT * FROM menus
+    WHERE is_active = 1
+      AND type IN (
+        'trial',
+        'lesson',
+        'elementary_reschedule',
+        'junior_reschedule'
+      )
+    ORDER BY id
+  `;
     db.all(slotsSql, params, (err, slots) => {
       if (err) {
         console.error('admin/slots slots取得エラー詳細:', err);
@@ -630,21 +634,38 @@ app.get('/reschedule', (req, res) => {
       });
     });
   });
-  app.post("/admin/add-slot", requireAdmin,(req, res) => {
-    const { menu_id, date, start_time, end_time, capacity } = req.body;
+ 
+  app.post("/admin/add-slot", requireAdmin, (req, res) => {
+    let { menu_ids, date, start_time, end_time, capacity } = req.body;
+  
+    if (!menu_ids) {
+      return res.redirect("/admin/slots?error=menu");
+    }
+  
+    if (!Array.isArray(menu_ids)) {
+      menu_ids = [menu_ids];
+    }
   
     const sql = `
       INSERT INTO slots (menu_id, date, start_time, end_time, capacity, is_active)
       VALUES (?, ?, ?, ?, ?, 1)
     `;
   
-    db.run(sql, [menu_id, date, start_time, end_time, capacity], function (err) {
-      if (err) {
-        console.error(err);
-        return res.send("slot追加失敗");
-      }
+    let completed = 0;
   
-      res.redirect("/admin/slots");
+    menu_ids.forEach(menu_id => {
+      db.run(sql, [menu_id, date, start_time, end_time, capacity], function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("slot追加失敗");
+        }
+  
+        completed++;
+  
+        if (completed === menu_ids.length) {
+          res.redirect("/admin/slots?success=スロットを追加しました");
+        }
+      });
     });
   });
 
@@ -658,6 +679,34 @@ app.get('/reschedule', (req, res) => {
       }
   
       res.redirect("/admin/slots");
+    });
+  });
+
+  app.post('/admin/slots/delete-selected', requireAdmin, (req, res) => {
+    let { slot_ids } = req.body;
+  
+    if (!slot_ids) {
+      return res.redirect('/admin/slots?error=削除するスロットを選択してください');
+    }
+  
+    if (!Array.isArray(slot_ids)) {
+      slot_ids = [slot_ids];
+    }
+  
+    const placeholders = slot_ids.map(() => '?').join(',');
+  
+    const sql = `
+      DELETE FROM slots
+      WHERE id IN (${placeholders})
+    `;
+  
+    db.run(sql, slot_ids, function (err) {
+      if (err) {
+        console.error(err);
+        return res.redirect('/admin/slots?error=スロットの削除に失敗しました');
+      }
+  
+      res.redirect('/admin/slots?success=選択したスロットを削除しました');
     });
   });
 
