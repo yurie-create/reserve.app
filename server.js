@@ -2087,6 +2087,23 @@ db.run(updateSql, [reservationId], function (err) {
     );
   });
 
+  app.post('/admin/members/:id/delete', requireAdmin, (req, res) => {
+    const { id } = req.params;
+  
+    db.serialize(() => {
+      db.run(`DELETE FROM absences WHERE member_id = ?`, [id]);
+      db.run(`DELETE FROM monthly_entries WHERE member_id = ?`, [id]);
+      db.run(`DELETE FROM reservations WHERE member_id = ?`, [id]);
+      db.run(`DELETE FROM members WHERE id = ?`, [id], function (err) {
+        if (err) {
+          console.error(err);
+          return res.send('会員の削除に失敗しました');
+        }
+  
+        res.redirect('/admin/members');
+      });
+    });
+  });
  
 
 

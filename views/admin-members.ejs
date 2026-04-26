@@ -86,6 +86,39 @@
         padding: 12px 10px;
       }
     }
+
+    .action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-buttons form {
+  margin: 0;
+}
+
+.edit-button,
+.delete-button {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.edit-button {
+  background: #2563eb;
+  color: #fff;
+}
+
+.delete-button {
+  background: #e53935;
+  color: #fff;
+}
   </style>
 </head>
 <body>
@@ -147,11 +180,15 @@
                       <%= member.start_month %>
                     <% } %>
                   </td>
-                  <td>
-                    <a href="/admin/members/<%= member.id %>/edit">編集</a>
+                  <td class="action-buttons">
+                    <a href="/admin/members/<%= member.id %>/edit" class="edit-button">
+                      編集
+                    </a>
                   
-                    <form action="/admin/members/<%= member.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('この会員を削除しますか？')">
-                      <button type="submit">削除</button>
+                    <form action="/admin/members/<%= member.id %>/delete" method="POST" onsubmit="return confirm('この会員を削除しますか？')">
+                      <button type="submit" class="delete-button">
+                        削除
+                      </button>
                     </form>
                   </td>
               </tr>
