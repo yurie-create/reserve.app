@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会員情報編集 | SiegSports</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>会員情報編集</h1>
+    </header>
+
+    <a href="/admin/members" class="top-link">← 会員一覧へ戻る</a>
+
+    <form action="/admin/members/<%= member.id %>/edit" method="POST" class="summary-box">
+
+      <div class="form-group">
+        <label>名前</label>
+        <input type="text" name="name" value="<%= member.name || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>ふりがな</label>
+        <input type="text" name="kana" value="<%= member.kana || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>学年</label>
+        <input type="text" name="grade" value="<%= member.grade || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>メール</label>
+        <input type="email" name="email" value="<%= member.email || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>電話番号</label>
+        <input type="text" name="phone" value="<%= member.phone || '' %>" required>
+      </div>
+
+      <div class="form-group">
+        <label>保護者名</label>
+        <input type="text" name="guardian_name" value="<%= member.guardian_name || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label>備考</label>
+        <textarea name="note"><%= member.note || '' %></textarea>
+      </div>
+
+      <hr>
+
+      <h3>月謝会員情報</h3>
+
+      <div class="form-group">
+        <label>学校名</label>
+        <input type="text" name="school_name" value="<%= member.school_name || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label>生年月日</label>
+        <input type="date" name="birth_date" value="<%= member.birth_date || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label>コース</label>
+        <select name="course">
+          <option value="">月謝会員ではない</option>
+          <option value="elementary_wed" <%= member.course === 'elementary_wed' ? 'selected' : '' %>>小学生 水曜</option>
+          <option value="elementary_fri" <%= member.course === 'elementary_fri' ? 'selected' : '' %>>小学生 金曜</option>
+          <option value="elementary_twice" <%= member.course === 'elementary_twice' ? 'selected' : '' %>>小学生 週2回</option>
+          <option value="junior_wed" <%= member.course === 'junior_wed' ? 'selected' : '' %>>中学生 水曜</option>
+          <option value="junior_fri" <%= member.course === 'junior_fri' ? 'selected' : '' %>>中学生 金曜</option>
+          <option value="junior_twice" <%= member.course === 'junior_twice' ? 'selected' : '' %>>中学生 週2回</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>入会月</label>
+        <input type="month" name="start_month" value="<%= member.start_month || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label>SNS掲載</label>
+        <select name="sns_permission">
+          <option value="">未設定</option>
+          <option value="ok" <%= member.sns_permission === 'ok' ? 'selected' : '' %>>掲載可</option>
+          <option value="limited" <%= member.sns_permission === 'limited' ? 'selected' : '' %>>顔が分からない形なら可</option>
+          <option value="ng" <%= member.sns_permission === 'ng' ? 'selected' : '' %>>掲載不可</option>
+        </select>
+      </div>
+
+      <button type="submit" class="submit-button">更新する</button>
+    </form>
+
+  </div>
+</body>
+</html>

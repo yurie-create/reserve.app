@@ -114,6 +114,7 @@
               <th>月謝</th>
               <th>コース</th>
               <th>入会月</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -145,6 +146,13 @@
                     <% if (member.start_month) { %>
                       <%= member.start_month %>
                     <% } %>
+                  </td>
+                  <td>
+                    <a href="/admin/members/<%= member.id %>/edit">編集</a>
+                  
+                    <form action="/admin/members/<%= member.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('この会員を削除しますか？')">
+                      <button type="submit">削除</button>
+                    </form>
                   </td>
               </tr>
             <% }) %>

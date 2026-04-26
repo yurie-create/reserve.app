@@ -1935,6 +1935,158 @@ db.run(updateSql, [reservationId], function (err) {
     });
   });
 
+  app.get('/admin/members/:id/edit', requireAdmin, (req, res) => {
+    const { id } = req.params;
+  
+    const sql = `
+      SELECT
+        m.*,
+        me.school_name,
+        me.birth_date,
+        me.course,
+        me.start_month,
+        me.sns_permission
+      FROM members m
+      LEFT JOIN monthly_entries me ON m.id = me.member_id
+      WHERE m.id = ?
+    `;
+  
+    db.get(sql, [id], (err, member) => {
+      if (err) {
+        console.error(err);
+        return res.send('会員情報の取得に失敗しました');
+      }
+  
+      if (!member) {
+        return res.send('会員が見つかりません');
+      }
+  
+      res.render('admin-member-edit', { member });
+    });
+  });
+
+
+  app.post('/admin/members/:id/edit', requireAdmin, (req, res) => {
+    const { id } = req.params;
+  
+    const {
+      name,
+      kana,
+      grade,
+      email,
+      phone,
+      guardian_name,
+      note,
+      school_name,
+      birth_date,
+      course,
+      start_month,
+      sns_permission
+    } = req.body;
+  
+    const memberSql = `
+      UPDATE members
+      SET
+        name = ?,
+        kana = ?,
+        grade = ?,
+        email = ?,
+        phone = ?,
+        guardian_name = ?,
+        note = ?
+      WHERE id = ?
+    `;
+  
+    db.run(
+      memberSql,
+      [name, kana, grade, email, phone, guardian_name, note, id],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send('会員情報の更新に失敗しました');
+        }
+  
+        if (!course) {
+          return db.run(
+            `DELETE FROM monthly_entries WHERE member_id = ?`,
+            [id],
+            (err) => {
+              if (err) {
+                console.error(err);
+                return res.send('月謝会員情報の削除に失敗しました');
+              }
+  
+              res.redirect('/admin/members');
+            }
+          );
+        }
+  
+        const checkSql = `
+          SELECT id
+          FROM monthly_entries
+          WHERE member_id = ?
+        `;
+  
+        db.get(checkSql, [id], (err, entry) => {
+          if (err) {
+            console.error(err);
+            return res.send('月謝会員情報の確認に失敗しました');
+          }
+  
+          if (entry) {
+            const updateMonthlySql = `
+              UPDATE monthly_entries
+              SET
+                school_name = ?,
+                birth_date = ?,
+                course = ?,
+                start_month = ?,
+                sns_permission = ?
+              WHERE member_id = ?
+            `;
+  
+            db.run(
+              updateMonthlySql,
+              [school_name, birth_date, course, start_month, sns_permission, id],
+              (err) => {
+                if (err) {
+                  console.error(err);
+                  return res.send('月謝会員情報の更新に失敗しました');
+                }
+  
+                res.redirect('/admin/members');
+              }
+            );
+          } else {
+            const insertMonthlySql = `
+              INSERT INTO monthly_entries (
+                member_id,
+                school_name,
+                birth_date,
+                course,
+                start_month,
+                sns_permission
+              ) VALUES (?, ?, ?, ?, ?, ?)
+            `;
+  
+            db.run(
+              insertMonthlySql,
+              [id, school_name, birth_date, course, start_month, sns_permission],
+              (err) => {
+                if (err) {
+                  console.error(err);
+                  return res.send('月謝会員情報の追加に失敗しました');
+                }
+  
+                res.redirect('/admin/members');
+              }
+            );
+          }
+        });
+      }
+    );
+  });
+
  
 
 
