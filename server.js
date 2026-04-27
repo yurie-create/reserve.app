@@ -711,8 +711,16 @@ app.get('/reschedule', (req, res) => {
     });
   });
 
-  app.post("/admin/add-slots-bulk", requireAdmin,(req, res) => {
-    const { menu_id, dates, start_time, end_time, capacity } = req.body;
+  app.post("/admin/add-slots-bulk", requireAdmin, (req, res) => {
+    let { menu_ids, dates, start_time, end_time, capacity } = req.body;
+  
+    if (!menu_ids) {
+      return res.send("メニューを選択してください");
+    }
+  
+    if (!Array.isArray(menu_ids)) {
+      menu_ids = [menu_ids];
+    }
   
     const dateList = (dates || "")
       .split(",")
@@ -728,23 +736,27 @@ app.get('/reschedule', (req, res) => {
       VALUES (?, ?, ?, ?, ?, 1)
     `;
   
+    const total = dateList.length * menu_ids.length;
     let completed = 0;
     let hasError = false;
   
     dateList.forEach(date => {
-      db.run(sql, [menu_id, date, start_time, end_time, capacity], function (err) {
-        if (hasError) return;
+      menu_ids.forEach(menu_id => {
+        db.run(sql, [menu_id, date, start_time, end_time, capacity], function (err) {
+          if (hasError) return;
   
-        if (err) {
-          hasError = true;
-          console.error(err);
-          return res.send("複数slot追加失敗");
-        }
+          if (err) {
+            hasError = true;
+            console.error(err);
+            return res.send("複数slot追加失敗");
+          }
   
-        completed += 1;
-        if (completed === dateList.length) {
-          res.redirect("/admin/slots");
-        }
+          completed++;
+  
+          if (completed === total) {
+            res.redirect("/admin/slots?success=スロットを追加しました");
+          }
+        });
       });
     });
   });
