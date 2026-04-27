@@ -712,7 +712,15 @@ app.get('/reschedule', (req, res) => {
   });
 
   app.post("/admin/add-slots-bulk", requireAdmin, (req, res) => {
-    let { menu_ids, dates, start_time, end_time, capacity } = req.body;
+    let {
+      menu_ids,
+      dates,
+      start_time,
+      end_time,
+      slot_minutes,
+      interval_minutes,
+      capacity
+    } = req.body;
   
     if (!menu_ids) {
       return res.send("メニューを選択してください");
@@ -726,6 +734,45 @@ app.get('/reschedule', (req, res) => {
       .split(",")
       .map(d => d.trim())
       .filter(Boolean);
+      const slotMinutes = Number(slot_minutes || 0);
+      const intervalMinutes = Number(interval_minutes || 0);
+
+      function timeToMinutes(time) {
+        const [hours, minutes] = time.split(":").map(Number);
+        return hours * 60 + minutes;
+      }
+      
+      function minutesToTime(totalMinutes) {
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+      
+        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+      }
+
+      const timeSlots = [];
+
+if (slotMinutes > 0) {
+  let current = timeToMinutes(start_time);
+  const end = timeToMinutes(end_time);
+
+  while (current + slotMinutes <= end) {
+    const slotStart = minutesToTime(current);
+    const slotEnd = minutesToTime(current + slotMinutes);
+
+    timeSlots.push({
+      start_time: slotStart,
+      end_time: slotEnd
+    });
+
+    current += slotMinutes + intervalMinutes;
+  }
+} else {
+  timeSlots.push({
+    start_time,
+    end_time
+  });
+}
+
   
     if (dateList.length === 0) {
       return res.send("日付が選択されていません");
@@ -736,30 +783,38 @@ app.get('/reschedule', (req, res) => {
       VALUES (?, ?, ?, ?, ?, 1)
     `;
   
-    const total = dateList.length * menu_ids.length;
+    const total = dateList.length * menu_ids.length * timeSlots.length;
     let completed = 0;
     let hasError = false;
-  
+    
     dateList.forEach(date => {
       menu_ids.forEach(menu_id => {
-        db.run(sql, [menu_id, date, start_time, end_time, capacity], function (err) {
-          if (hasError) return;
-  
-          if (err) {
-            hasError = true;
-            console.error(err);
-            return res.send("複数slot追加失敗");
-          }
-  
-          completed++;
-  
-          if (completed === total) {
-            res.redirect("/admin/slots?success=スロットを追加しました");
-          }
+        timeSlots.forEach(slot => {
+          db.run(
+            sql,
+            [menu_id, date, slot.start_time, slot.end_time, capacity],
+            function (err) {
+              if (hasError) return;
+    
+              if (err) {
+                hasError = true;
+                console.error(err);
+                return res.send("複数slot追加失敗");
+              }
+    
+              completed++;
+    
+              if (completed === total) {
+                res.redirect("/admin/slots?success=スロットを追加しました");
+              }
+            }
+          );
         });
       });
     });
   });
+    
+    
 
   app.post('/admin/add-slots-pattern',requireAdmin, (req, res) => {
     const {
