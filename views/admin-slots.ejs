@@ -500,6 +500,7 @@ function changeSlotCalendarMonth(diff) {
           <th>時間</th>
           <th>定員</th>
           <th>予約数</th>
+          <th>操作</th>
         </tr>
       </thead>
       <tbody>
@@ -509,6 +510,12 @@ function changeSlotCalendarMonth(diff) {
             <td>${slot.start_time} - ${slot.end_time}</td>
             <td>${slot.capacity}</td>
             <td>${slot.reserved_count}</td>
+            <td>
+    <form action="/admin/delete-slot" method="POST" onsubmit="return confirm('このスロットを削除しますか？')">
+      <input type="hidden" name="id" value="${slot.id}">
+      <button type="submit" class="delete-button">削除</button>
+    </form>
+  </td>
           </tr>
         `).join("")}
       </tbody>
