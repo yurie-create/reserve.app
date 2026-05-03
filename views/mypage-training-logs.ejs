@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>練習日誌 | SiegSports</title>
+
+  <link rel="stylesheet" href="/css/reserve.css">
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+  
+    .training-page {
+      padding: 12px 10px 32px;
+    }
+  
+    .training-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+  
+    .training-title {
+      font-size: 20px;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+  
+    .training-lead {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+      line-height: 1.7;
+    }
+  
+    #trainingCalendar {
+      background: #fff;
+      border-radius: 16px;
+      padding: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+  
+    .fc .fc-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+  
+    .fc .fc-toolbar-chunk {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+  
+    .fc .fc-toolbar-title {
+      font-size: 17px !important;
+      font-weight: bold;
+    }
+  
+    .fc .fc-button {
+      font-size: 11px !important;
+      padding: 5px 8px !important;
+      border-radius: 8px !important;
+    }
+  
+    .fc .fc-col-header-cell-cushion {
+      font-size: 11px;
+      padding: 4px 1px;
+      white-space: normal;
+      line-height: 1.2;
+    }
+  
+    .fc .fc-daygrid-day-frame {
+      min-height: 64px;
+    }
+  
+    .fc .fc-daygrid-day-number {
+      font-size: 12px;
+      padding: 3px;
+    }
+  
+    .fc-daygrid-event {
+      font-size: 10px;
+      padding: 1px 2px;
+      border-radius: 4px;
+    }
+  
+    .fc .fc-list {
+      border: none;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+  
+    .fc .fc-list-table {
+      width: 100%;
+    }
+  
+    .fc .fc-list-event td {
+      padding: 12px !important;
+      border-color: #eee !important;
+      vertical-align: top;
+    }
+  
+    .fc .fc-list-event-time,
+    .fc .fc-list-event-graphic {
+      display: none !important;
+    }
+  
+    .fc .fc-list-event-title {
+      width: 100%;
+    }
+  
+    .fc .fc-list-event:hover td {
+      background: #fafafa !important;
+    }
+  
+    .fc .fc-list-day-cushion {
+      background: #f7f7f7 !important;
+      padding: 8px 10px !important;
+    }
+  
+    .fc .fc-list-day-text,
+    .fc .fc-list-day-side-text {
+      font-size: 13px;
+      font-weight: bold;
+      color: #555;
+    }
+  
+    .list-day-log {
+      width: 100%;
+    }
+  
+    .list-day-log h3 {
+      font-size: 14px;
+      margin: 0 0 5px;
+    }
+  
+    .list-day-subtitle {
+      font-size: 12px;
+      color: #666;
+      margin: 0 0 6px;
+      line-height: 1.5;
+    }
+  
+    .list-day-body {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #333;
+    }
+  
+    .log-form label {
+      display: block;
+      font-weight: bold;
+      font-size: 13px;
+      margin: 14px 0 6px;
+    }
+  
+    .log-form input,
+    .log-form textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+    }
+  
+    .log-form textarea {
+      resize: vertical;
+      line-height: 1.7;
+    }
+  
+    .submit-button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 14px;
+      border: none;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      color: #333;
+      text-decoration: underline;
+      font-size: 14px;
+    }
+
+    .list-day-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.list-day-actions a {
+  font-size: 12px;
+  text-decoration: none;
+  color: #111;
+  font-weight: bold;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+}
+
+.list-day-log-link,
+.list-day-log-link:visited,
+.list-day-log-link:hover,
+.list-day-log-link:focus,
+.list-day-log-link:active {
+  display: block;
+  text-decoration: none !important;
+  color: inherit !important;
+  outline: none;
+}
+
+.list-day-log-link *,
+.list-day-log-link:hover * {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+  </style>
+</head>
+
+<body>
+
+
+  <main class="training-page">
+
+    <section class="training-card">
+      <h2 class="training-title">練習日誌</h2>
+      <p class="training-lead">
+        日々の練習内容・記録・体調・振り返りを自由に残しましょう。<br>
+        カレンダーの日付を押すと、その日の日付が入力されます。
+      </p>
+    </section>
+
+    <!-- カレンダー -->
+    <div id="trainingCalendar"></div>
+
+    <!-- 入力フォーム -->
+    <section class="training-card">
+      <h2 class="training-title">日誌を書く</h2>
+
+      <form action="/mypage/training-logs" method="POST" class="log-form">
+
+        <label for="logDate">日付</label>
+        <input type="date" name="date" id="logDate" required>
+
+        <label for="title">タイトル</label>
+        <input
+          type="text"
+          name="title"
+          id="title"
+          placeholder="例：120m3本 / 万博"
+          required
+        >
+
+        <label for="subtitle">サブタイトル</label>
+        <input
+          type="text"
+          name="subtitle"
+          id="subtitle"
+          placeholder="例：体調◎ / 疲労少なめ / 50m測定あり"
+        >
+
+        <label for="body">本文</label>
+        <textarea
+          name="body"
+          id="body"
+          rows="9"
+          placeholder="例：
+【練習メニュー】
+・ウォーミングアップ
+・ドリル
+・30m加速走 × 3
+・50m測定
+
+【記録】
+50m：8.23秒
+
+【振り返り】
+スタートは良かった。次回は中盤の姿勢を意識する。"
+        ></textarea>
+
+        <button type="submit" class="submit-button">保存する</button>
+      </form>
+
+      <a href="/mypage" class="back-link">マイページに戻る</a>
+    </section>
+
+  </main>
+
+  <script>
+    const logs = <%- JSON.stringify(logs || []) %>;
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const calendarEl = document.getElementById("trainingCalendar");
+      const logDateInput = document.getElementById("logDate");
+
+      const today = new Date().toISOString().split("T")[0];
+      logDateInput.value = today;
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "dayGridMonth",
+        locale: "ja",
+        height: "auto",
+
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,dayGridWeek,listDay"
+        },
+
+        buttonText: {
+  today: "今日",
+  month: "月",
+  week: "週",
+  listDay: "日"
+},
+
+        events: logs.map(log => ({
+  id: log.id,
+  title: log.title,
+  subtitle: log.subtitle,
+  body: log.body,
+  start: log.date,
+  url: `/mypage/training-logs/${log.id}`
+})),
+
+eventContent: function(arg) {
+  const viewType = arg.view.type;
+  const subtitle = arg.event.extendedProps.subtitle || "";
+  const body = arg.event.extendedProps.body || "";
+
+  // 週表示：タイトル + サブタイトル
+  if (viewType === "dayGridWeek") {
+    return {
+      html: `
+        <div style="padding:2px 4px;">
+          <div style="font-weight:600; font-size:11px;">${arg.event.title}</div>
+          ${
+            subtitle
+              ? `<div style="font-size:10px; opacity:0.8; line-height:1.2;">${subtitle}</div>`
+              : ""
+          }
+        </div>
+      `
+    };
+  }
+
+  // 日表示：タイトル + サブタイトル + 本文
+  if (viewType === "listDay") {
+  return {
+    html: `
+      <a href="/mypage/training-logs/${arg.event.id}" class="list-day-log-link">
+        <div class="list-day-log">
+          <h3>${arg.event.title}</h3>
+          ${subtitle ? `<p class="list-day-subtitle">${subtitle}</p>` : ""}
+          ${body ? `<div class="list-day-body">${body.replace(/\n/g, "<br>")}</div>` : ""}
+        </div>
+      </a>
+    `
+  };
+}
+
+  // 月表示：タイトルのみ
+  return {
+    html: `<div style="font-size:11px;">${arg.event.title}</div>`
+  };
+},
+        dateClick: function(info) {
+          logDateInput.value = info.dateStr;
+
+          const formArea = document.querySelector(".log-form");
+          formArea.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+
+</body>
+</html>

@@ -26,7 +26,7 @@
     <section class="calendar-box">
       <div class="calendar-head">
         <button class="month-nav" type="button" onclick="changeMonth(-1)">‹</button>
-        <h3 id="calendarTitle">2026年4月</h3>
+        <h3 id="calendarTitle"></h3>
         <button class="month-nav" type="button" onclick="changeMonth(1)">›</button>
       </div>
     
@@ -81,8 +81,9 @@
         let selectedDate = "";
         let selectedTime = "";
         let selectedSlotId = "";
-        let currentYear = 2026;
-let currentMonth = 4;
+        const now = new Date();
+let currentYear = now.getFullYear();
+let currentMonth = now.getMonth() + 1;
 
 function changeMonth(diff) {
   currentMonth += diff;
@@ -104,6 +105,8 @@ function changeMonth(diff) {
 function renderCalendar() {
   const calendarGrid = document.getElementById('calendarGrid');
   calendarGrid.innerHTML = '';
+
+  document.getElementById('calendarTitle').textContent = `${currentYear}年${currentMonth}月`;
 
   const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
@@ -200,8 +203,9 @@ function renderCalendar() {
 
   selectedDate = date;
 
-  const day = Number(date.split("-")[2]);
-document.getElementById('selectedDateText').textContent = `選択中：2026年4月${day}日`;
+ 
+  const [year, month, day] = date.split("-");
+document.getElementById('selectedDateText').textContent = `選択中：${year}年${Number(month)}月${Number(day)}日`;
 
   document.getElementById('timeList').style.display = 'block';
   document.getElementById('bookingActions').style.display = 'none';

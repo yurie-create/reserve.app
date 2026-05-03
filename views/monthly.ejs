@@ -7,19 +7,25 @@
   <link rel="stylesheet" href="/css/monthly.css">
 </head>
 <body>
+
 <!-- ヘッダー -->
-<header class="header" style="display:flex; justify-content:space-between; align-items:center;">
-  <h1>SiegSports</h1>
+<header class="header site-header">
+  <div class="header-logo">
+    <h1>SiegSports</h1>
+  </div>
+
   <% if (memberId && member) { %>
-    <div style="text-align: right; margin-bottom: 10px;">
-      こんにちは、<strong><%= member.name %></strong>さん
-      <a href="/mypage" style="margin-left: 10px;">マイページ</a>
-      <a href="/logout" style="margin-left: 10px;">ログアウト</a>
+    <div class="header-user">
+      <p>こんにちは、<strong><%= member.name %></strong>さん</p>
+      <div class="header-links">
+        <a href="/mypage">マイページ</a>
+        <a href="/logout">ログアウト</a>
+      </div>
     </div>
   <% } else { %>
-    <div style="text-align: right; margin-bottom: 10px;">
+    <div class="header-links">
       <a href="/members/login">ログイン</a>
-      <a href="/members/new" style="margin-left: 10px;">会員登録</a>
+      <a href="/members/new">会員登録</a>
     </div>
   <% } %>
 </header>
@@ -31,7 +37,8 @@
   <nav class="tabs">
     <button onclick="location.href='/'">予約/振替</button>
     <button class="active" onclick="location.href='/monthly'">入会</button>
-    <button>カレンダー</button>
+    <button onclick="location.href='/mypage/training-logs'">日誌</button>
+  <button onclick="location.href='/mypage/records'">記録</button>
   </nav>
 
   <section class="monthly-card">

@@ -2173,6 +2173,389 @@ db.run(updateSql, [reservationId], function (err) {
   });
  
 
+  app.get("/mypage/training-logs", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+  
+    db.all(
+      `
+      SELECT *
+      FROM training_logs
+      WHERE member_id = ?
+      ORDER BY date DESC, id DESC
+      `,
+      [memberId],
+      (err, logs) => {
+        if (err) {
+          console.error(err);
+          return res.send("練習日誌の取得中にエラーが発生しました");
+        }
+  
+        res.render("mypage-training-logs", {
+          memberId,
+          member: req.session.member,
+          logs
+        });
+      }
+    );
+  });
+
+  app.post("/mypage/training-logs", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const { date, title, subtitle, body } = req.body;
+  
+    db.run(
+      `
+      INSERT INTO training_logs (member_id, date, title, subtitle, body)
+      VALUES (?, ?, ?, ?, ?)
+      `,
+      [memberId, date, title, subtitle, body],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("練習日誌の保存中にエラーが発生しました");
+        }
+  
+        res.redirect("/mypage/training-logs");
+      }
+    );
+  });
+
+
+  app.get("/mypage/training-logs/:id", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const logId = req.params.id;
+  
+    db.get(
+      `
+      SELECT *
+      FROM training_logs
+      WHERE id = ? AND member_id = ?
+      `,
+      [logId, memberId],
+      (err, log) => {
+        if (err) {
+          console.error(err);
+          return res.send("練習日誌の取得中にエラーが発生しました");
+        }
+  
+        if (!log) {
+          return res.status(404).send("練習日誌が見つかりません");
+        }
+  
+        res.render("mypage-training-log-detail", {
+          memberId,
+          member: req.session.member,
+          log
+        });
+      }
+    );
+  });
+
+  app.get("/mypage/training-logs/:id/edit", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const logId = req.params.id;
+  
+    db.get(
+      `
+      SELECT *
+      FROM training_logs
+      WHERE id = ? AND member_id = ?
+      `,
+      [logId, memberId],
+      (err, log) => {
+        if (err) {
+          console.error(err);
+          return res.send("練習日誌の取得中にエラーが発生しました");
+        }
+  
+        if (!log) {
+          return res.status(404).send("練習日誌が見つかりません");
+        }
+  
+        res.render("mypage-training-log-edit", {
+          memberId,
+          member: req.session.member,
+          log
+        });
+      }
+    );
+  });
+
+  app.post("/mypage/training-logs/:id/edit", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const logId = req.params.id;
+    const { date, title, subtitle, body } = req.body;
+  
+    db.run(
+      `
+      UPDATE training_logs
+      SET date = ?, title = ?, subtitle = ?, body = ?
+      WHERE id = ? AND member_id = ?
+      `,
+      [date, title, subtitle, body, logId, memberId],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("練習日誌の更新中にエラーが発生しました");
+        }
+  
+        res.redirect(`/mypage/training-logs/${logId}`);
+      }
+    );
+  });
+
+  app.post("/mypage/training-logs/:id/delete", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const logId = req.params.id;
+  
+    db.run(
+      `
+      DELETE FROM training_logs
+      WHERE id = ? AND member_id = ?
+      `,
+      [logId, memberId],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("練習日誌の削除中にエラーが発生しました");
+        }
+  
+        res.redirect("/mypage/training-logs");
+      }
+    );
+  });
+
+  app.get("/admin/members/:id/training-logs", requireAdmin, (req, res) => {
+    const memberId = req.params.id;
+  
+    db.get(
+      `SELECT * FROM members WHERE id = ?`,
+      [memberId],
+      (err, member) => {
+        if (err) {
+          console.error(err);
+          return res.send("会員情報の取得中にエラーが発生しました");
+        }
+  
+        if (!member) {
+          return res.status(404).send("会員が見つかりません");
+        }
+  
+        db.all(
+          `
+          SELECT *
+          FROM training_logs
+          WHERE member_id = ?
+          ORDER BY date DESC, id DESC
+          `,
+          [memberId],
+          (err, logs) => {
+            if (err) {
+              console.error(err);
+              return res.send("練習日誌の取得中にエラーが発生しました");
+            }
+  
+            res.render("admin-member-training-logs", {
+              member,
+              logs
+            });
+          }
+        );
+      }
+    );
+  });
+
+  app.get("/mypage/records", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+  
+    db.all(
+      `
+      SELECT *
+      FROM personal_records
+      WHERE member_id = ?
+      ORDER BY date DESC, id DESC
+      `,
+      [memberId],
+      (err, records) => {
+        if (err) {
+          console.error(err);
+          return res.send("記録の取得中にエラーが発生しました");
+        }
+  
+        const events = ["50m", "100m", "200m", "400m", "800m", "1500m"];
+  
+        const unofficialBests = events.map(eventName => {
+          const filtered = records.filter(record =>
+            record.event_name === eventName &&
+            record.record_type === "unofficial"
+          );
+  
+          if (filtered.length === 0) return null;
+  
+          return filtered.reduce((best, current) => {
+            return current.record_number < best.record_number ? current : best;
+          });
+        }).filter(Boolean);
+  
+        const officialBests = events.map(eventName => {
+          const filtered = records.filter(record =>
+            record.event_name === eventName &&
+            record.record_type === "official"
+          );
+  
+          if (filtered.length === 0) return null;
+  
+          return filtered.reduce((best, current) => {
+            return current.record_number < best.record_number ? current : best;
+          });
+        }).filter(Boolean);
+  
+        res.render("mypage-records", {
+          memberId,
+          member: req.session.member,
+          records,
+          unofficialBests,
+          officialBests
+        });
+      }
+    );
+  });
+
+  app.post("/mypage/records", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const { date, event_name, record_display, record_type, meet_name } = req.body;
+  
+    const timeRegex = /^\d+\.\d{2}$/;
+
+    if (!timeRegex.test(record_display)) {
+      return res.send("記録は 8.44 のように「半角数字.小数点2桁」で入力してください");
+    }
+    
+    const record_number = parseFloat(record_display);
+  
+    db.run(
+      `
+      INSERT INTO personal_records
+      (member_id, date, event_name, record_display, record_number, record_type, meet_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      [memberId, date, event_name, record_display, record_number, record_type, meet_name],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("記録の保存中にエラーが発生しました");
+        }
+  
+        res.redirect("/mypage/records");
+      }
+    );
+  });
+
+  app.get("/mypage/records/:id/edit", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const recordId = req.params.id;
+  
+    db.get(
+      `
+      SELECT *
+      FROM personal_records
+      WHERE id = ? AND member_id = ?
+      `,
+      [recordId, memberId],
+      (err, record) => {
+        if (err) {
+          console.error(err);
+          return res.send("記録の取得中にエラーが発生しました");
+        }
+  
+        if (!record) {
+          return res.status(404).send("記録が見つかりません");
+        }
+  
+        res.render("mypage-record-edit", {
+          memberId,
+          member: req.session.member,
+          record
+        });
+      }
+    );
+  });
+
+  app.post("/mypage/records/:id/edit", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    const memberId = req.session.memberId;
+    const recordId = req.params.id;
+    const { date, event_name, record_display, record_type, meet_name } = req.body;
+  
+    const timeRegex = /^\d+\.\d{2}$/;
+  
+    if (!timeRegex.test(record_display)) {
+      return res.send("記録は 8.44 のように「数字.小数点2桁」で入力してください");
+    }
+  
+    const record_number = parseFloat(record_display);
+  
+    db.run(
+      `
+      UPDATE personal_records
+      SET date = ?,
+          event_name = ?,
+          record_display = ?,
+          record_number = ?,
+          record_type = ?,
+          meet_name = ?
+      WHERE id = ? AND member_id = ?
+      `,
+      [date, event_name, record_display, record_number, record_type, meet_name, recordId, memberId],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("記録の更新中にエラーが発生しました");
+        }
+  
+        res.redirect("/mypage/records");
+      }
+    );
+  });
 
   app.listen(PORT, () => {
     console.log("server start");

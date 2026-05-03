@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記録管理 | SiegSports</title>
+  <link rel="stylesheet" href="/css/reserve.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { background: #f5f5f5; }
+
+    .records-page {
+      padding: 12px 10px 32px;
+    }
+
+    .records-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+
+    .records-title {
+      font-size: 20px;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+
+    .records-lead {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    .section-title {
+      font-size: 17px;
+      margin: 0 0 12px;
+      border-left: 4px solid #111;
+      padding-left: 8px;
+    }
+
+    .record-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .record-row {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+
+    .record-event {
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .record-value {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .record-meta {
+      font-size: 12px;
+      color: #666;
+      margin-top: 3px;
+    }
+
+    .record-filter {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      margin-bottom: 12px;
+    }
+
+    .record-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .record-count {
+  min-width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.record-count.rank-1 {
+  background: linear-gradient(135deg, #d4af37, #f6d365);
+  color: #fff;
+}
+
+.record-count.rank-2 {
+  background: linear-gradient(135deg, #9ea7ad, #d7dde2);
+  color: #fff;
+}
+
+.record-count.rank-3 {
+  background: linear-gradient(135deg, #b87333, #d89b5b);
+  color: #fff;
+}
+
+    .record-edit-link {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #333;
+      text-decoration: underline;
+    }
+
+    .best-record {
+      cursor: pointer;
+    }
+
+    .best-record:hover {
+      background: #fafafa;
+    }
+
+    .record-form label {
+      display: block;
+      font-weight: bold;
+      font-size: 13px;
+      margin: 14px 0 6px;
+    }
+
+    .record-form input,
+    .record-form select {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .submit-button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 14px;
+      border: none;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      color: #333;
+      text-decoration: underline;
+      font-size: 14px;
+    }
+
+    .summary-box {
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.summary-box summary {
+  list-style: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 6px 0;
+}
+
+.summary-box summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary-box summary::after {
+  content: "＋";
+  float: right;
+  font-size: 16px;
+}
+
+.summary-box[open] summary::after {
+  content: "−";
+}
+
+
+  </style>
+</head>
+
+<body>
+  <main class="records-page">
+
+    <section class="records-card">
+      <h1 class="records-title">記録管理</h1>
+      <p class="records-lead">
+        50m・100mなどのタイムを記録できます。<br>
+        非公認記録と公認記録を分けて管理します。
+      </p>
+    </section>
+
+    <!-- 非公認ベスト -->
+    <section class="records-card">
+      <h2 class="section-title">非公認ベスト</h2>
+
+      <% if (!unofficialBests || unofficialBests.length === 0) { %>
+        <p>まだ非公認記録はありません。</p>
+      <% } else { %>
+        <div class="record-list">
+          <% unofficialBests.forEach(record => { %>
+            <div
+              class="record-row best-record"
+              data-event="<%= record.event_name %>"
+              data-type="unofficial"
+            >
+              <div class="record-event"><%= record.event_name %></div>
+              <div>
+                <div class="record-value"><%= record.record_display %></div>
+                <div class="record-meta"><%= record.date %> / <%= record.meet_name || '自己測定' %></div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+    <!-- 公認ベスト -->
+    <section class="records-card">
+      <h2 class="section-title">公認ベスト</h2>
+
+      <% if (!officialBests || officialBests.length === 0) { %>
+        <p>まだ公認記録はありません。</p>
+      <% } else { %>
+        <div class="record-list">
+          <% officialBests.forEach(record => { %>
+            <div
+              class="record-row best-record"
+              data-event="<%= record.event_name %>"
+              data-type="official"
+            >
+              <div class="record-event"><%= record.event_name %></div>
+              <div>
+                <div class="record-value"><%= record.record_display %></div>
+                <div class="record-meta"><%= record.date %> / <%= record.meet_name || '大会記録' %></div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+
+    <!-- 記録推移 -->
+    <section class="records-card">
+      <h2 class="section-title">記録推移</h2>
+      <p class="records-lead" style="margin-bottom:12px;">
+        上のベスト記録をタップすると、種目ごとの記録推移が表示されます。
+      </p>
+      <select id="chartYearFilter" class="record-filter">
+        <option value="all">すべての期間</option>
+      </select>
+      <canvas id="recordChart"></canvas>
+    </section>
+
+    <!-- 非公認の過去記録 -->
+    <section class="records-card">
+      <details class="summary-box">
+        <summary>非公認の過去記録</summary>
+
+      <select id="unofficialEventFilter" class="record-filter">
+        <option value="all">すべて</option>
+        <option value="50m">50m</option>
+        <option value="100m">100m</option>
+        <option value="200m">200m</option>
+        <option value="400m">400m</option>
+        <option value="800m">800m</option>
+        <option value="1500m">1500m</option>
+      </select>
+
+      <%
+        const unofficialRecords = records
+          .filter(record => record.record_type === "unofficial")
+          .sort((a, b) => {
+            if (a.event_name === b.event_name) {
+              return a.record_number - b.record_number;
+            }
+            return a.event_name.localeCompare(b.event_name, "ja");
+          });
+
+        const unofficialCountMap = {};
+      %>
+
+      <% if (unofficialRecords.length === 0) { %>
+        <p>まだ非公認の過去記録はありません。</p>
+      <% } else { %>
+        <div class="record-list">
+          <% unofficialRecords.forEach(record => { %>
+            <div class="record-row unofficial-record" data-event="<%= record.event_name %>">
+              <div class="record-event"><%= record.event_name %></div>
+              <div>
+                <%
+                  unofficialCountMap[record.event_name] = (unofficialCountMap[record.event_name] || 0) + 1;
+                  const unofficialCount = unofficialCountMap[record.event_name];
+                %>
+
+                <div class="record-top">
+                  <div class="record-value"><%= record.record_display %></div>
+                  <% if (unofficialCount <= 3) { %>
+                    <div class="record-count rank-<%= unofficialCount %>"><%= unofficialCount %></div>
+                  <% } %>
+                </div>
+
+                <div class="record-meta"><%= record.date %> / <%= record.meet_name || '自己測定' %></div>
+
+                <a href="/mypage/records/<%= record.id %>/edit" class="record-edit-link">
+                  編集する
+                </a>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </details>
+    </section>
+
+    <!-- 公認の過去記録 -->
+    <section class="records-card">
+      <details class="summary-box">
+        <summary>公認の過去記録</summary>
+
+      <select id="officialEventFilter" class="record-filter">
+        <option value="all">すべて</option>
+        <option value="50m">50m</option>
+        <option value="100m">100m</option>
+        <option value="200m">200m</option>
+        <option value="400m">400m</option>
+        <option value="800m">800m</option>
+        <option value="1500m">1500m</option>
+      </select>
+
+      <%
+        const officialRecords = records
+          .filter(record => record.record_type === "official")
+          .sort((a, b) => {
+            if (a.event_name === b.event_name) {
+              return a.record_number - b.record_number;
+            }
+            return a.event_name.localeCompare(b.event_name, "ja");
+          });
+
+        const officialCountMap = {};
+      %>
+
+      <% if (officialRecords.length === 0) { %>
+        <p>まだ公認の過去記録はありません。</p>
+      <% } else { %>
+        <div class="record-list">
+          <% officialRecords.forEach(record => { %>
+            <div class="record-row official-record" data-event="<%= record.event_name %>">
+              <div class="record-event"><%= record.event_name %></div>
+              <div>
+                <%
+                  officialCountMap[record.event_name] = (officialCountMap[record.event_name] || 0) + 1;
+                  const officialCount = officialCountMap[record.event_name];
+                %>
+
+                <div class="record-top">
+                  <div class="record-value"><%= record.record_display %></div>
+                  <% if (officialCount <= 3) { %>
+                    <div class="record-count rank-<%= officialCount %>"><%= officialCount %></div>
+                  <% } %>
+                </div>
+
+                <div class="record-meta"><%= record.date %> / <%= record.meet_name || '大会記録' %></div>
+
+                <a href="/mypage/records/<%= record.id %>/edit" class="record-edit-link">
+                  編集する
+                </a>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </details>
+    </section>
+
+    <!-- 記録登録 -->
+    <section class="records-card">
+      <h2 class="section-title">記録を登録</h2>
+
+      <form action="/mypage/records" method="POST" class="record-form">
+        <label for="date">日付</label>
+        <input type="date" name="date" id="date" required>
+
+        <label for="event_name">種目</label>
+        <select name="event_name" id="event_name" required>
+          <option value="">選択してください</option>
+          <option value="50m">50m</option>
+          <option value="100m">100m</option>
+          <option value="200m">200m</option>
+          <option value="400m">400m</option>
+          <option value="800m">800m</option>
+          <option value="1500m">1500m</option>
+        </select>
+
+        <label for="record_display">記録</label>
+        <input
+          type="text"
+          name="record_display"
+          id="record_display"
+          placeholder="例：8.44"
+          required
+        >
+
+        <label for="record_type">記録種別</label>
+        <select name="record_type" id="record_type" required>
+          <option value="unofficial">非公認記録</option>
+          <option value="official">公認記録</option>
+        </select>
+
+        <label for="meet_name">大会名・測定名</label>
+        <input
+          type="text"
+          name="meet_name"
+          id="meet_name"
+          placeholder="例：練習測定 / 第1回記録会"
+        >
+
+        <button type="submit" class="submit-button">登録する</button>
+      </form>
+    </section>
+
+    <a href="/mypage" class="back-link">マイページに戻る</a>
+
+  </main>
+
+ 
+  <script>
+    const allRecords = <%- JSON.stringify(records || []) %>;
+  
+    let recordChart = null;
+    let currentChartEventName = null;
+    let currentChartRecordType = null;
+  
+    function setupRecordFilter(selectId, rowClass) {
+      const select = document.getElementById(selectId);
+      if (!select) return;
+  
+      select.addEventListener("change", function () {
+        const selectedEvent = this.value;
+        const rows = document.querySelectorAll("." + rowClass);
+  
+        rows.forEach(row => {
+          const eventName = row.dataset.event;
+          row.style.display =
+            selectedEvent === "all" || eventName === selectedEvent
+              ? "grid"
+              : "none";
+        });
+      });
+    }
+  
+    function getSchoolYear(dateStr) {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      return month >= 4 ? year : year - 1;
+    }
+  
+    function setupChartYearFilter() {
+      const select = document.getElementById("chartYearFilter");
+      if (!select) return;
+  
+      const years = [...new Set(allRecords.map(record => getSchoolYear(record.date)))]
+        .sort((a, b) => b - a);
+  
+      years.forEach(year => {
+        const option = document.createElement("option");
+        option.value = String(year);
+        option.textContent = `${year}年度`;
+        select.appendChild(option);
+      });
+    }
+  
+    function drawRecordChart(eventName, recordType) {
+      currentChartEventName = eventName;
+      currentChartRecordType = recordType;
+  
+      const selectedYear = document.getElementById("chartYearFilter")?.value || "all";
+  
+      const filteredRecords = allRecords
+        .filter(record => {
+          if (record.event_name !== eventName) return false;
+          if (record.record_type !== recordType) return false;
+  
+          if (selectedYear !== "all") {
+            return String(getSchoolYear(record.date)) === selectedYear;
+          }
+  
+          return true;
+        })
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+      const labels = filteredRecords.map(record => record.date);
+      const data = filteredRecords.map(record => Number(record.record_number));
+  
+      const ctx = document.getElementById("recordChart");
+  
+      if (recordChart) {
+        recordChart.destroy();
+      }
+  
+      recordChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [{
+            label: `${recordType === "official" ? "公認" : "非公認"} ${eventName} の記録推移`,
+            data,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              reverse: true,
+              title: {
+                display: true,
+                text: "タイム"
+              }
+            }
+          }
+        }
+      });
+    }
+  
+    setupRecordFilter("unofficialEventFilter", "unofficial-record");
+    setupRecordFilter("officialEventFilter", "official-record");
+    setupChartYearFilter();
+  
+    document.querySelectorAll(".best-record").forEach(row => {
+      row.addEventListener("click", function () {
+        const eventName = this.dataset.event;
+        const recordType = this.dataset.type;
+  
+        drawRecordChart(eventName, recordType);
+  
+        document.getElementById("recordChart").scrollIntoView({
+          behavior: "smooth",
+          block: "center"
+        });
+      });
+    });
+  
+    document.getElementById("chartYearFilter")?.addEventListener("change", function () {
+      if (currentChartEventName && currentChartRecordType) {
+        drawRecordChart(currentChartEventName, currentChartRecordType);
+      }
+    });
+  </script>
+</body>
+</html>

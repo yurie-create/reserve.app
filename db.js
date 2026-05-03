@@ -23,6 +23,34 @@ db.serialize(() => {
   `);
 
   db.run(`
+  CREATE TABLE IF NOT EXISTS training_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    title TEXT NOT NULL,
+    subtitle TEXT,
+    body TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(id)
+  )
+`);
+
+db.run(`
+  CREATE TABLE IF NOT EXISTS personal_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    event_name TEXT NOT NULL,
+    record_display TEXT NOT NULL,
+    record_number REAL NOT NULL,
+    record_type TEXT NOT NULL,
+    meet_name TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (member_id) REFERENCES members(id)
+  )
+`);
+
+  db.run(`
     CREATE TABLE IF NOT EXISTS menus (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

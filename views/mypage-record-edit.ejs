@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記録を編集 | SiegSports</title>
+  <link rel="stylesheet" href="/css/reserve.css">
+
+  <style>
+    body { background: #f5f5f5; }
+
+    .edit-page {
+      padding: 16px 12px 32px;
+    }
+
+    .edit-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+
+    .edit-title {
+      font-size: 20px;
+      margin: 0 0 18px;
+      text-align: center;
+    }
+
+    .edit-form label {
+      display: block;
+      font-weight: bold;
+      font-size: 13px;
+      margin: 14px 0 6px;
+    }
+
+    .edit-form input,
+    .edit-form select {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .submit-button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 14px;
+      border: none;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      color: #333;
+      text-decoration: underline;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="edit-page">
+    <section class="edit-card">
+      <h1 class="edit-title">記録を編集</h1>
+
+      <form action="/mypage/records/<%= record.id %>/edit" method="POST" class="edit-form">
+        <label for="date">日付</label>
+        <input type="date" name="date" id="date" value="<%= record.date %>" required>
+
+        <label for="event_name">種目</label>
+        <select name="event_name" id="event_name" required>
+          <option value="50m" <%= record.event_name === "50m" ? "selected" : "" %>>50m</option>
+          <option value="100m" <%= record.event_name === "100m" ? "selected" : "" %>>100m</option>
+          <option value="200m" <%= record.event_name === "200m" ? "selected" : "" %>>200m</option>
+          <option value="400m" <%= record.event_name === "400m" ? "selected" : "" %>>400m</option>
+          <option value="800m" <%= record.event_name === "800m" ? "selected" : "" %>>800m</option>
+          <option value="1500m" <%= record.event_name === "1500m" ? "selected" : "" %>>1500m</option>
+        </select>
+
+        <label for="record_display">記録</label>
+        <input type="text" name="record_display" id="record_display" value="<%= record.record_display %>" required>
+
+        <label for="record_type">記録種別</label>
+        <select name="record_type" id="record_type" required>
+          <option value="unofficial" <%= record.record_type === "unofficial" ? "selected" : "" %>>非公認記録</option>
+          <option value="official" <%= record.record_type === "official" ? "selected" : "" %>>公認記録</option>
+        </select>
+
+        <label for="meet_name">大会名・測定名</label>
+        <input type="text" name="meet_name" id="meet_name" value="<%= record.meet_name || '' %>">
+
+        <button type="submit" class="submit-button">更新する</button>
+      </form>
+
+      <a href="/mypage/records" class="back-link">記録管理に戻る</a>
+    </section>
+  </main>
+</body>
+</html>

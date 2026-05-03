@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= log.title %> | 練習日誌</title>
+  <link rel="stylesheet" href="/css/reserve.css">
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+
+    .detail-page {
+      padding: 16px 12px 32px;
+    }
+
+    .detail-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+
+    .log-date {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .log-title {
+      font-size: 22px;
+      margin: 0 0 10px;
+    }
+
+    .log-subtitle {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+
+    .log-body {
+      font-size: 15px;
+      line-height: 1.9;
+      white-space: pre-wrap;
+      border-top: 1px solid #eee;
+      padding-top: 18px;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      color: #333;
+      text-decoration: underline;
+      font-size: 14px;
+    }
+
+    .action-button {
+  display: block;
+  width: 80%;
+  max-width: 280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 14px;
+  border: none;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+.edit-button {
+  background: #111;
+  color: #fff;
+}
+
+.delete-button {
+  background: #c0392b;
+  color: #fff;
+}
+
+.action-form {
+  margin-top: 12px;
+}
+  </style>
+</head>
+
+<body>
+  <main class="detail-page">
+    <section class="detail-card">
+      <div class="log-date"><%= log.date %></div>
+
+      <h1 class="log-title"><%= log.title %></h1>
+
+      <% if (log.subtitle) { %>
+        <div class="log-subtitle"><%= log.subtitle %></div>
+      <% } %>
+
+      <div class="log-body"><%= log.body %></div>
+      <div style="margin-top: 24px;">
+        <a href="/mypage/training-logs/<%= log.id %>/edit" class="action-button edit-button">
+          編集する
+        </a>
+      </div>
+      
+      <form
+        action="/mypage/training-logs/<%= log.id %>/delete"
+        method="POST"
+        onsubmit="return confirm('この練習日誌を削除してもよろしいですか？');"
+        class="action-form"
+      >
+        <button type="submit" class="action-button delete-button">
+          削除する
+        </button>
+      </form>
+    </section>
+
+    <a href="/mypage/training-logs" class="back-link">練習日誌に戻る</a>
+  </main>
+</body>
+</html>

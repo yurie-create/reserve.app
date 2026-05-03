@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= member.name %>さんの練習日誌 | 管理画面</title>
+
+  <link rel="stylesheet" href="/css/guest-form.css">
+
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+  <style>
+    body {
+      background: #f5f5f5;
+    }
+
+    .admin-page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px 12px 40px;
+    }
+
+    .page-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+
+    .page-title {
+      font-size: 22px;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+
+    .page-lead {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    #adminTrainingCalendar {
+      background: #fff;
+      border-radius: 16px;
+      padding: 10px;
+      margin-bottom: 16px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+
+    .fc .fc-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .fc .fc-toolbar-chunk {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .fc .fc-toolbar-title {
+      font-size: 17px !important;
+      font-weight: bold;
+    }
+
+    .fc .fc-button {
+      font-size: 11px !important;
+      padding: 5px 8px !important;
+      border-radius: 8px !important;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+      font-size: 11px;
+      padding: 4px 1px;
+      white-space: normal;
+      line-height: 1.2;
+    }
+
+    .fc .fc-daygrid-day-frame {
+      min-height: 64px;
+    }
+
+    .fc .fc-daygrid-day-number {
+      font-size: 12px;
+      padding: 3px;
+    }
+
+    .fc-daygrid-event {
+      font-size: 10px;
+      padding: 1px 2px;
+      border-radius: 4px;
+    }
+
+    .fc .fc-list {
+      border: none;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .fc .fc-list-table {
+      width: 100%;
+    }
+
+    .fc .fc-list-event td {
+      padding: 12px !important;
+      border-color: #eee !important;
+      vertical-align: top;
+    }
+
+    .fc .fc-list-event-time,
+    .fc .fc-list-event-graphic {
+      display: none !important;
+    }
+
+    .fc .fc-list-event-title {
+      width: 100%;
+    }
+
+    .fc .fc-list-event:hover td {
+      background: #fafafa !important;
+    }
+
+    .fc .fc-list-day-cushion {
+      background: #f7f7f7 !important;
+      padding: 8px 10px !important;
+    }
+
+    .fc .fc-list-day-text,
+    .fc .fc-list-day-side-text {
+      font-size: 13px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    .list-day-log {
+      width: 100%;
+    }
+
+    .list-day-log h3 {
+      font-size: 14px;
+      margin: 0 0 5px;
+    }
+
+    .list-day-subtitle {
+      font-size: 12px;
+      color: #666;
+      margin: 0 0 6px;
+      line-height: 1.5;
+    }
+
+    .list-day-body {
+      font-size: 12px;
+      line-height: 1.7;
+      color: #333;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #333;
+      text-decoration: underline;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="admin-page">
+
+    <section class="page-card">
+      <h1 class="page-title"><%= member.name %>さんの練習日誌</h1>
+      <p class="page-lead">
+        月表示ではタイトル、週表示ではサブタイトル、日表示では本文まで確認できます。
+      </p>
+    </section>
+
+    <div id="adminTrainingCalendar"></div>
+
+    <a href="/admin/members" class="back-link">会員一覧に戻る</a>
+
+  </main>
+
+  <script>
+    const logs = <%- JSON.stringify(logs || []) %>;
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const calendarEl = document.getElementById("adminTrainingCalendar");
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: "dayGridMonth",
+        locale: "ja",
+        height: "auto",
+
+        headerToolbar: {
+          left: "prev,next today",
+          center: "title",
+          right: "dayGridMonth,dayGridWeek,listDay"
+        },
+
+        buttonText: {
+          today: "今日",
+          month: "月",
+          week: "週",
+          listDay: "日"
+        },
+
+        events: logs.map(log => ({
+          id: log.id,
+          title: log.title,
+          subtitle: log.subtitle,
+          body: log.body,
+          start: log.date
+        })),
+
+        eventContent: function(arg) {
+          const viewType = arg.view.type;
+          const subtitle = arg.event.extendedProps.subtitle || "";
+          const body = arg.event.extendedProps.body || "";
+
+          if (viewType === "dayGridWeek") {
+            return {
+              html: `
+                <div style="padding:2px 4px;">
+                  <div style="font-weight:600; font-size:11px;">${arg.event.title}</div>
+                  ${
+                    subtitle
+                      ? `<div style="font-size:10px; opacity:0.8; line-height:1.2;">${subtitle}</div>`
+                      : ""
+                  }
+                </div>
+              `
+            };
+          }
+
+          if (viewType === "listDay") {
+            return {
+              html: `
+                <div class="list-day-log">
+                  <h3>${arg.event.title}</h3>
+                  ${subtitle ? `<p class="list-day-subtitle">${subtitle}</p>` : ""}
+                  ${body ? `<div class="list-day-body">${body.replace(/\n/g, "<br>")}</div>` : ""}
+                </div>
+              `
+            };
+          }
+
+          return {
+            html: `<div style="font-size:11px;">${arg.event.title}</div>`
+          };
+        },
+        dateClick: function(info) {
+  calendar.changeView("listDay", info.dateStr);
+},
+eventClick: function(info) {
+  info.jsEvent.preventDefault();
+  calendar.changeView("listDay", info.event.startStr);
+}
+      });
+
+      calendar.render();
+    });
+  </script>
+</body>
+</html>

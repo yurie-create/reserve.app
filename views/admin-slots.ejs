@@ -122,7 +122,7 @@
       
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
             <button type="button" class="month-btn" onclick="changeMonth(-1)">‹</button>
-            <strong id="calendarTitle">2026年4月</strong>
+            <strong id="calendarTitle"></strong>
             <button type="button" class="month-btn" onclick="changeMonth(1)">›</button>
           </div>
       
@@ -310,8 +310,9 @@
   </form>
   <script>
     const selectedDates = [];
-    let currentYear = 2026;
-    let currentMonth = 4;
+    const now = new Date();
+let currentYear = now.getFullYear();
+let currentMonth = now.getMonth() + 1;
   
     function renderCalendar() {
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();

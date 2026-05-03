@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>練習日誌を編集 | SiegSports</title>
+  <link rel="stylesheet" href="/css/reserve.css">
+
+  <style>
+    body { background: #f5f5f5; }
+    .edit-page { padding: 16px 12px 32px; }
+    .edit-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+    }
+    .edit-title {
+      font-size: 20px;
+      margin: 0 0 18px;
+      text-align: center;
+    }
+    .edit-form label {
+      display: block;
+      font-weight: bold;
+      font-size: 13px;
+      margin: 14px 0 6px;
+    }
+    .edit-form input,
+    .edit-form textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 16px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .edit-form textarea {
+      resize: vertical;
+      line-height: 1.7;
+    }
+    .submit-button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 14px;
+      border: none;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 24px;
+      color: #333;
+      text-decoration: underline;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="edit-page">
+    <section class="edit-card">
+      <h1 class="edit-title">練習日誌を編集</h1>
+
+      <form action="/mypage/training-logs/<%= log.id %>/edit" method="POST" class="edit-form">
+        <label for="date">日付</label>
+        <input type="date" name="date" id="date" value="<%= log.date %>" required>
+
+        <label for="title">タイトル</label>
+        <input type="text" name="title" id="title" value="<%= log.title %>" required>
+
+        <label for="subtitle">サブタイトル</label>
+        <input type="text" name="subtitle" id="subtitle" value="<%= log.subtitle || '' %>">
+
+        <label for="body">本文</label>
+        <textarea name="body" id="body" rows="10"><%= log.body || '' %></textarea>
+
+        <button type="submit" class="submit-button">更新する</button>
+      </form>
+
+      <a href="/mypage/training-logs/<%= log.id %>" class="back-link">詳細に戻る</a>
+    </section>
+  </main>
+</body>
+</html>
