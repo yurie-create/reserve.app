@@ -2576,6 +2576,109 @@ db.run(updateSql, [reservationId], function (err) {
     );
   });
 
+  app.get("/admin/members/:id/records", (req, res) => {
+    const memberId = req.params.id;
+  
+    db.all(
+      `
+      SELECT *
+      FROM personal_records
+      WHERE member_id = ?
+      ORDER BY date DESC, id DESC
+      `,
+      [memberId],
+      (err, records) => {
+        if (err) {
+          console.error(err);
+          return res.send("記録の取得中にエラーが発生しました");
+        }
+  
+        db.get(
+          `SELECT * FROM members WHERE id = ?`,
+          [memberId],
+          (err, member) => {
+            if (err) {
+              console.error(err);
+              return res.send("会員情報の取得中にエラーが発生しました");
+            }
+  
+            if (!member) {
+              return res.status(404).send("会員が見つかりません");
+            }
+  
+            const events = ["50m", "100m", "200m", "400m", "800m", "1500m"];
+  
+            const unofficialBests = events.map(eventName => {
+              const filtered = records.filter(record =>
+                record.event_name === eventName &&
+                record.record_type === "unofficial"
+              );
+  
+              if (filtered.length === 0) return null;
+  
+              return filtered.reduce((best, current) => {
+                return current.record_number < best.record_number ? current : best;
+              });
+            }).filter(Boolean);
+  
+            const officialBests = events.map(eventName => {
+              const filtered = records.filter(record =>
+                record.event_name === eventName &&
+                record.record_type === "official"
+              );
+  
+              if (filtered.length === 0) return null;
+  
+              return filtered.reduce((best, current) => {
+                return current.record_number < best.record_number ? current : best;
+              });
+            }).filter(Boolean);
+  
+            res.render("admin-member-records", {
+              records,
+              member,
+              unofficialBests,
+              officialBests,
+              success: req.query.success
+            });
+          }
+        );
+      }
+    );
+  });
+
+
+  app.post("/admin/members/:id/records", (req, res) => {
+    const memberId = req.params.id;
+    const { date, event_name, record_display, record_type, meet_name } = req.body;
+  
+    const timeRegex = /^\d+\.\d{2}$/;
+  
+    if (!timeRegex.test(record_display)) {
+      return res.send("記録は 8.44 のように「数字.小数点2桁」で入力してください");
+    }
+  
+    const record_number = parseFloat(record_display);
+  
+    db.run(
+      `
+      INSERT INTO personal_records
+      (member_id, date, event_name, record_display, record_number, record_type, meet_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      [memberId, date, event_name, record_display, record_number, record_type, meet_name],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("記録の保存中にエラーが発生しました");
+        }
+  
+        res.redirect(`/admin/members/${memberId}/records?success=1`);
+      }
+    );
+  });
+
+
   app.listen(PORT, () => {
     console.log("server start");
   });
