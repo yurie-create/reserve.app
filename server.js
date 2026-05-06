@@ -2557,6 +2557,25 @@ db.run(updateSql, [reservationId], function (err) {
     );
   });
 
+
+  app.post("/admin/reservations/:id/delete", (req, res) => {
+    const reservationId = req.params.id;
+  
+    db.run(
+      `DELETE FROM reservations WHERE id = ?`,
+      [reservationId],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.send("削除中にエラーが発生しました");
+        }
+  
+        // 削除後は一覧に戻す
+        res.redirect("/admin/reservations");
+      }
+    );
+  });
+
   app.listen(PORT, () => {
     console.log("server start");
   });

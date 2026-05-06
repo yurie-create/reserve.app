@@ -5,6 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>予約詳細 | SiegSports</title>
   <link rel="stylesheet" href="/css/guest-form.css">
+  <style>
+    .delete-button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      background: #c0392b;
+      margin-bottom: 10px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <div class="page">
@@ -66,6 +80,17 @@
         <span class="value"><%= reservation.note || 'なし' %></span>
       </div>
     </section>
+
+    <form
+  action="/admin/reservations/<%= reservation.id %>/delete"
+  method="POST"
+  onsubmit="return confirm('この予約を削除してもよろしいですか？');"
+  style="margin-top: 20px;"
+>
+  <button type="submit" class="delete-button">
+    予約を削除する
+  </button>
+</form>
 
     <div class="bottom-actions">
       <button class="back-button" type="button" onclick="history.back()">戻る</button>

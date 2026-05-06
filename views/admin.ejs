@@ -19,7 +19,7 @@
     <section class="calendar-box">
       <div class="calendar-head">
         <button class="month-nav" type="button" onclick="changeMonth(-1)">‹</button>
-        <h3 id="calendarTitle">2026年4月</h3>
+        <h3 id="calendarTitle"></h3>
         <button class="month-nav" type="button" onclick="changeMonth(1)">›</button>
       </div>
     
@@ -117,9 +117,10 @@ function formatPlan(plan) {
 }
     const reservations = <%- JSON.stringify(reservations) %>;
     console.log(reservations);
-    let currentYear = 2026;
     let selectedReservationDate = '';
-    let currentMonth = 4;
+    const now = new Date();
+let currentYear = now.getFullYear();
+let currentMonth = now.getMonth() + 1;
   
     function changeMonth(diff) { 
       currentMonth += diff;
@@ -141,6 +142,9 @@ function formatPlan(plan) {
     function renderCalendar() {
       const calendarGrid = document.getElementById('calendarGrid');
       calendarGrid.innerHTML = '';
+
+      document.getElementById('calendarTitle').textContent =
+    `${currentYear}年${currentMonth}月`;
   
       const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
       const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
