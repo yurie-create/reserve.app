@@ -230,7 +230,9 @@
             return {
               html: `
                 <div style="padding:2px 4px;">
-                  <div style="font-weight:600; font-size:11px;">${arg.event.title}</div>
+                  <div style="font-weight:600; font-size:9px; line-height:1.2; white-space:normal;">
+  ${arg.event.title}
+</div>
                   ${
                     subtitle
                       ? `<div style="font-size:10px; opacity:0.8; line-height:1.2;">${subtitle}</div>`
@@ -254,7 +256,11 @@
           }
 
           return {
-            html: `<div style="font-size:11px;">${arg.event.title}</div>`
+            html: `
+  <div style="font-size:9px; line-height:1.2; white-space:normal;">
+    ${arg.event.title}
+  </div>
+`
           };
         },
         dateClick: function(info) {

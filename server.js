@@ -2558,7 +2558,7 @@ db.run(updateSql, [reservationId], function (err) {
   });
 
 
-  app.post("/admin/reservations/:id/delete", (req, res) => {
+  app.post("/admin/reservations/:id/delete", requireAdmin, (req, res) => {
     const reservationId = req.params.id;
   
     db.run(
@@ -2576,7 +2576,7 @@ db.run(updateSql, [reservationId], function (err) {
     );
   });
 
-  app.get("/admin/members/:id/records", (req, res) => {
+  app.get("/admin/members/:id/records", requireAdmin, (req, res) => {
     const memberId = req.params.id;
   
     db.all(
@@ -2648,7 +2648,7 @@ db.run(updateSql, [reservationId], function (err) {
   });
 
 
-  app.post("/admin/members/:id/records", (req, res) => {
+  app.post("/admin/members/:id/records", requireAdmin, (req, res) => {
     const memberId = req.params.id;
     const { date, event_name, record_display, record_type, meet_name } = req.body;
   
