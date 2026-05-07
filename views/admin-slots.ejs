@@ -63,12 +63,12 @@
       
           <div class="form-group">
             <label>開始時間</label>
-            <input type="time" name="start_time" required>
+            <input type="time" name="start_time" step="300" required>
           </div>
       
           <div class="form-group">
             <label>終了時間</label>
-            <input type="time" name="end_time" required>
+            <input type="time" name="end_time" step="300" required>
           </div>
       
           <div class="form-group">
@@ -98,12 +98,12 @@
       
           <div class="form-group">
             <label>開始時間</label>
-            <input type="time" name="start_time" required>
+            <input type="time" name="start_time" step="300" required>
           </div>
       
           <div class="form-group">
             <label>終了時間</label>
-            <input type="time" name="end_time" required>
+            <input type="time" name="end_time" step="300" required>
           </div>
       
           <div class="form-group">
@@ -179,12 +179,12 @@
       
           <div class="form-group">
             <label>開始時間</label>
-            <input type="time" name="start_time" required>
+            <input type="time" name="start_time" step="300" required>
           </div>
       
           <div class="form-group">
             <label>終了時間</label>
-            <input type="time" name="end_time" required>
+            <input type="time" name="end_time" step="300" required>
           </div>
       
           <div class="form-group">
@@ -257,7 +257,7 @@
           <th>曜日</th>
           <th>時間</th>
           <th>メニュー</th>
-          <th>定員</th>
+          
           <th>予約</th>
           <th>状態</th>
           <th>操作</th>
@@ -278,12 +278,12 @@
               %>
               <%= weekDays[day] %>
             </td>
-            <td><%= slot.start_time %>〜<%= slot.end_time %></td>
+            <td><%= slot.start_time %>-<%= slot.end_time %></td>
             <td><%= slot.menu_name %></td>
-            <td><%= slot.capacity %></td>
-            <td><%= slot.reserved_count %> / <%= slot.capacity %></td>
+            
+            <td><%= slot.reserved_count %>/<%= slot.capacity %></td>
             <td class="<%= slot.capacity - slot.reserved_count <= 0 ? 'full' : 'available' %>">
-              <%= slot.capacity - slot.reserved_count <= 0 ? '満席' : '空きあり' %>
+              <%= slot.capacity - slot.reserved_count <= 0 ? '満席' : '空き' %>
             </td>
             <td>
               <button
@@ -503,7 +503,7 @@ function changeSlotCalendarMonth(diff) {
           <th>メニュー</th>
           <th>時間</th>
           <th>定員</th>
-          <th>予約数</th>
+          <th>予約</th>
           <th>操作</th>
         </tr>
       </thead>
@@ -511,7 +511,7 @@ function changeSlotCalendarMonth(diff) {
         ${selected.map(slot => `
           <tr>
             <td>${slot.menu_name}</td>
-            <td>${slot.start_time} - ${slot.end_time}</td>
+            <td>${slot.start_time}-${slot.end_time}</td>
             <td>${slot.capacity}</td>
             <td>${slot.reserved_count}</td>
             <td>
