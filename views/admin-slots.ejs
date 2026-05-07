@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>空き枠管理 | SiegSports</title>
   <link rel="stylesheet" href="/css/guest-form.css">
+ 
 </head>
 <body>
   <%
@@ -247,7 +248,8 @@
     <% } %>
 
     <form action="/admin/slots/delete-selected" method="POST">
-    <table class="slot-table">
+      <div class="table-scroll">
+        <table class="slot-table">
       <thead>
         <tr>
           <th>選択</th>
@@ -300,6 +302,7 @@
         <% }) %>
       </tbody>
     </table>
+  </div>
     <button
     type="submit"
     class="delete-button"

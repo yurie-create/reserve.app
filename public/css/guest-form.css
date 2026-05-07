@@ -274,6 +274,7 @@
   background-color: #8b8484;
   cursor: pointer;
   border-radius: 6px;
+  
 }
 
 .slot-table button:hover {
@@ -590,3 +591,39 @@
 .toggle-password i {
   pointer-events: none;
 }
+
+#selectedSlotsContent .slot-table {
+  table-layout: auto;
+  width: 100%;
+}
+
+#selectedSlotsContent .slot-table th,
+#selectedSlotsContent .slot-table td {
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 0px 6px;
+}
+
+#selectedSlotsContent {
+  overflow-x: auto;
+}
+
+.slot-table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+.slot-table th,
+.slot-table td {
+  white-space: nowrap;
+  padding: 0px 6px;
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+
