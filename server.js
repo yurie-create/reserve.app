@@ -1834,8 +1834,43 @@ db.run(updateSql, [reservationId], function (err) {
               console.error(err);
               return res.send('欠席登録に失敗しました');
             }
-  
-            res.redirect('/reschedule?done=absence');
+        
+            const memberSql = `
+              SELECT name, guardian_name, email, phone, grade
+              FROM members
+              WHERE id = ?
+            `;
+        
+            db.get(memberSql, [req.session.memberId], (err, member) => {
+              if (err) {
+                console.error(err);
+                return res.redirect('/reschedule?done=absence');
+              }
+        
+              resend.emails.send({
+                from: "info@sieg-sports.com",
+                to: "yurie6312@gmail.com",
+                subject: "【SiegSports】欠席登録がありました",
+                html: `
+                  <h2>欠席登録がありました</h2>
+        
+                  <p><strong>欠席日</strong>：${absence_date}</p>
+                  <p><strong>会員名</strong>：${member?.name || "未取得"}</p>
+                  <p><strong>保護者名</strong>：${member?.guardian_name || "未取得"}</p>
+                  <p><strong>学年</strong>：${member?.grade || "未取得"}</p>
+                  <p><strong>メール</strong>：${member?.email || "未取得"}</p>
+                  <p><strong>電話</strong>：${member?.phone || "未取得"}</p>
+                  <p><strong>コース</strong>：${course}</p>
+                  <p><strong>備考</strong>：${note || "なし"}</p>
+                `
+              }).then((result) => {
+                console.log("欠席通知メール送信成功:", result);
+              }).catch((error) => {
+                console.error("欠席通知メール送信失敗:", error);
+              });
+        
+              res.redirect('/reschedule?done=absence');
+            });
           }
         );
       });
