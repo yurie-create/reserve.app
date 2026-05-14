@@ -46,6 +46,8 @@
           <span class="label">電話</span>
           <span class="value"><%= member.phone %></span>
         </div>
+
+        
       </section>
 
       <form action="/member-reserve" method="POST">
@@ -53,6 +55,26 @@
         <input type="hidden" name="date" value="<%= date %>">
         <input type="hidden" name="time" value="<%= time %>">
         <input type="hidden" name="slotId" value="<%= slotId %>">
+        <% if (
+          plan === "lesson" ||
+          plan === "personal30" ||
+          plan === "personal60"
+        ) { %>
+        
+          <div class="form-group">
+            <label for="note">
+              当日やりたい練習・相談したいこと
+            </label>
+        
+            <textarea
+              id="note"
+              name="note"
+              rows="4"
+              placeholder="例：スタート改善、100m後半、フォーム確認 など"
+            ></textarea>
+          </div>
+        
+        <% } %>
       
         <div class="bottom-actions">
           <button type="submit" class="submit-button">この内容で予約する</button>

@@ -1157,8 +1157,8 @@ res.render('admin-reservation-detail', {
   });
 
   app.post('/member-reserve', (req, res) => {
-    const { plan, date, time, slotId } = req.body;
-  
+    const { plan, date, time, slotId, note } = req.body;
+
     if (!req.session.memberId) {
       return res.redirect('/members/login');
     }
@@ -1249,7 +1249,7 @@ res.render('admin-reservation-detail', {
             member.grade,
             member.email,
             member.phone,
-            member.note || ''
+            note || ''
           ];
   
           db.run(insertSql, values, function (err) {
@@ -1312,7 +1312,7 @@ res.render('admin-reservation-detail', {
                   <p><strong>学年</strong>：${member.grade}</p>
                   <p><strong>メール</strong>：${member.email}</p>
                   <p><strong>電話番号</strong>：${member.phone}</p>
-                  <p><strong>備考</strong>：${member.note || 'なし'}</p>
+                  <p><strong>やりたい練習・相談内容</strong>：${note || 'なし'}</p>
                 `
               }).then((result) => {
                 console.log('会員予約メール送信成功:', result);
