@@ -1113,8 +1113,7 @@ res.render('admin-reservation-detail', {
         }
   
         req.session.memberId = matchedMember.id;
-  
-        const next = req.body.next || '/';
+        const next = req.body.next || '/mypage/records';
         res.redirect(next);
       } catch (error) {
         console.error(error);
@@ -2473,13 +2472,104 @@ db.run(updateSql, [reservationId], function (err) {
           });
         }).filter(Boolean);
   
-        res.render("mypage-records", {
-          memberId,
-          member: req.session.member,
-          records,
-          unofficialBests,
-          officialBests
+        const memberSql = `
+        SELECT *
+        FROM members
+        WHERE id = ?
+      `;
+      
+      db.get(memberSql, [memberId], (err, member) => {
+        if (err) {
+          console.error(err);
+          return res.send("会員情報の取得中にエラーが発生しました");
+        }
+      
+        const today = new Date().toISOString().split("T")[0];
+
+        const upcomingReservationsSql = `
+  SELECT *
+  FROM reservations
+  WHERE member_id = ?
+    AND date >= ?
+    AND status = 'active'
+  ORDER BY date ASC, time ASC
+  LIMIT 3
+`;
+        
+db.all(upcomingReservationsSql, [memberId, today], (err, upcomingReservations) => {
+  
+          if (err) {
+            console.error(err);
+            return res.send("次回予約の取得中にエラーが発生しました");
+          }
+          const nextReservation = upcomingReservations[0] || null;
+        
+          const monthlySql = `
+          SELECT *
+          FROM monthly_entries
+          WHERE member_id = ?
+        `;
+        
+        db.get(monthlySql, [memberId], (err, monthlyEntry) => {
+          if (err) {
+            console.error(err);
+            return res.send("月謝情報の取得中にエラーが発生しました");
+          }
+        
+          const closedDatesSql = `
+  SELECT date
+  FROM closed_lesson_dates
+`;
+
+db.all(closedDatesSql, [], (err, closedDates) => {
+  if (err) {
+    console.error(err);
+    return res.send("休講日の取得中にエラーが発生しました");
+  }
+
+  const closedDatesSql = `
+  SELECT date
+  FROM closed_lesson_dates
+`;
+
+db.all(closedDatesSql, [], (err, closedDates) => {
+  if (err) {
+    console.error(err);
+    return res.send("休講日の取得中にエラーが発生しました");
+  }
+
+  db.all(`
+  SELECT *
+  FROM notices
+  WHERE is_active = 1
+  ORDER BY created_at DESC
+  LIMIT 2
+`, (err, notices) => {
+
+  if (err) {
+    console.error(err);
+    return res.send("お知らせの取得に失敗しました");
+  }
+
+  res.render("mypage-records", {
+    memberId,
+    member,
+    records,
+    unofficialBests,
+    officialBests,
+    nextReservation,
+    upcomingReservations,
+    monthlyEntry,
+    closedDates,
+    notices
+  });
+
+});
+});
+});
         });
+        });
+      });
       }
     );
   });
@@ -2713,6 +2803,147 @@ db.run(updateSql, [reservationId], function (err) {
     );
   });
 
+
+  app.get("/admin/closed-dates", requireAdmin, (req, res) => {
+
+    db.all(`
+      SELECT *
+      FROM closed_lesson_dates
+      ORDER BY date ASC
+    `, (err, closedDates) => {
+  
+      if (err) {
+        console.error(err);
+        return res.send("休講日の取得に失敗しました");
+      }
+  
+      res.render("admin-closed-dates", {
+        closedDates
+      });
+  
+    });
+  
+  });
+
+
+  app.post("/admin/closed-dates", requireAdmin, (req, res) => {
+
+    const { date, note } = req.body;
+  
+    const sql = `
+      INSERT INTO closed_lesson_dates (
+        date,
+        note
+      ) VALUES (?, ?)
+    `;
+  
+    db.run(sql, [date, note || ""], (err) => {
+  
+      if (err) {
+        console.error(err);
+        return res.send("休講日の登録に失敗しました");
+      }
+  
+      res.redirect("/admin/closed-dates");
+  
+    });
+  
+  });
+
+
+  app.get("/admin/notices", requireAdmin, (req, res) => {
+
+    db.all(`
+      SELECT *
+      FROM notices
+      ORDER BY created_at DESC
+    `, (err, notices) => {
+  
+      if (err) {
+        console.error(err);
+        return res.send("お知らせの取得に失敗しました");
+      }
+  
+      res.render("admin-notices", {
+        notices
+      });
+  
+    });
+  
+  });
+  
+  app.post("/admin/notices", requireAdmin, (req, res) => {
+  
+    const { title, body } = req.body;
+  
+    const sql = `
+      INSERT INTO notices (
+        title,
+        body
+      ) VALUES (?, ?)
+    `;
+  
+    db.run(sql, [title, body], (err) => {
+  
+      if (err) {
+        console.error(err);
+        return res.send("お知らせ登録に失敗しました");
+      }
+  
+      res.redirect("/admin/notices");
+  
+    });
+  
+  });
+
+  app.get("/mypage/notices", (req, res) => {
+    if (!req.session.memberId) {
+      return res.redirect("/members/login");
+    }
+  
+    db.all(
+      `
+      SELECT *
+      FROM notices
+      WHERE is_active = 1
+      ORDER BY created_at DESC
+      `,
+      (err, notices) => {
+        if (err) {
+          console.error(err);
+          return res.send("お知らせの取得に失敗しました");
+        }
+  
+        res.render("mypage-notices", {
+          notices
+        });
+      }
+    );
+  });
+
+  app.post("/admin/notices/:id/delete", requireAdmin, (req, res) => {
+
+    const noticeId = req.params.id;
+  
+    db.run(
+      `
+      DELETE FROM notices
+      WHERE id = ?
+      `,
+      [noticeId],
+      (err) => {
+  
+        if (err) {
+          console.error(err);
+          return res.send("お知らせ削除に失敗しました");
+        }
+  
+        res.redirect("/admin/notices");
+  
+      }
+    );
+  
+  });
 
   app.listen(PORT, () => {
     console.log("server start");

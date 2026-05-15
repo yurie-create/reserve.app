@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お知らせ管理</title>
+  <link rel="stylesheet" href="/css/guest-form.css">
+</head>
+
+<body>
+  <div class="page">
+    <header class="header">
+      <h1>お知らせ管理</h1>
+    </header>
+
+    <a href="/admin" class="top-link">← 管理画面トップへ戻る</a>
+
+    <section class="summary-box">
+      <h3>お知らせ追加</h3>
+
+      <form action="/admin/notices" method="POST">
+        <div class="form-group">
+          <label>タイトル</label>
+          <input type="text" name="title" required>
+        </div>
+
+        <div class="form-group">
+          <label>本文</label>
+          <textarea name="body" rows="5"></textarea>
+        </div>
+
+        <button type="submit" class="submit-button">登録する</button>
+      </form>
+    </section>
+
+    <section class="summary-box">
+      <h3>登録済みのお知らせ</h3>
+
+      <% if (!notices || notices.length === 0) { %>
+        <p>まだお知らせはありません。</p>
+      <% } else { %>
+        <% notices.forEach(notice => { %>
+            <div class="summary-item">
+
+                <div>
+                  <span class="label"><%= notice.title %></span>
+                  <span class="value"><%= notice.body || '本文なし' %></span>
+                </div>
+              
+                <form
+                  action="/admin/notices/<%= notice.id %>/delete"
+                  method="POST"
+                  onsubmit="return confirm('削除しますか？')"
+                >
+                  <button type="submit" class="delete-button">
+                    削除
+                  </button>
+                </form>
+              
+              </div>
+        <% }) %>
+      <% } %>
+    </section>
+  </div>
+</body>
+</html>

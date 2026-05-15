@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>休講日管理</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    input,
+    textarea,
+    button {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      margin-top: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #111;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+
+    .closed-item {
+      border-bottom: 1px solid #eee;
+      padding: 12px 0;
+    }
+
+    .closed-date {
+      font-weight: bold;
+    }
+
+    .closed-note {
+      color: #666;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>休講日管理</h1>
+
+  <div class="card">
+    <form action="/admin/closed-dates" method="POST">
+
+      <label>休講日</label>
+      <input type="date" name="date" required>
+
+      <label>メモ</label>
+      <textarea
+        name="note"
+        rows="3"
+        placeholder="例：5週目のため休講"
+      ></textarea>
+
+      <button type="submit">
+        登録する
+      </button>
+
+    </form>
+  </div>
+
+  <div class="card">
+
+    <% if (closedDates.length === 0) { %>
+
+      <p>休講日は登録されていません。</p>
+
+    <% } %>
+
+    <% closedDates.forEach(item => { %>
+
+      <div class="closed-item">
+
+        <div class="closed-date">
+          <%= item.date %>
+        </div>
+
+        <div class="closed-note">
+          <%= item.note || "メモなし" %>
+        </div>
+
+      </div>
+
+    <% }) %>
+
+  </div>
+
+</body>
+</html>

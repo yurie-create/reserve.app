@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お知らせ一覧 | SiegSports</title>
+
+  
+  <style>
+    .notices-page {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .notice-item {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    .notice-date {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+
+    .notice-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .notice-body {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #444;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="notices-page">
+
+    <a href="/mypage/records" class="back-link">
+      ← マイページへ戻る
+    </a>
+
+    <h2 class="records-title">お知らせ一覧</h2>
+
+    <% if (!notices || notices.length === 0) { %>
+
+      <p>現在お知らせはありません。</p>
+
+    <% } else { %>
+
+      <% notices.forEach(notice => { %>
+
+        <div class="notice-item">
+
+          <div class="notice-date">
+            <%= new Date(notice.created_at).toLocaleDateString("ja-JP") %>
+          </div>
+
+          <div class="notice-title">
+            <%= notice.title %>
+          </div>
+
+          <div class="notice-body">
+            <%= notice.body %>
+          </div>
+
+        </div>
+
+      <% }) %>
+
+    <% } %>
+
+  </main>
+
+</body>
+</html>
