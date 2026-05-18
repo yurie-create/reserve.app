@@ -370,6 +370,106 @@
   font-weight: bold;
   color: #666;
 }
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.header-logo h1 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.header-user {
+  text-align: right;
+  font-size: 12px;
+}
+
+.header-user p {
+  margin: 0 0 6px;
+}
+
+.header-links {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.header-links a {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f3f3f3;
+  border: 1px solid #ddd;
+  font-size: 12px;
+  text-decoration: none;
+  color: #111;
+  font-weight: 600;
+}
+
+.header-links a:hover {
+  background: #eaeaea;
+}
+
+.tabs {
+  display: flex;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+.tabs button {
+  flex: 1;
+  border: none;
+  background: #fff;
+  padding: 14px 8px;
+  font-size: 13px;
+}
+
+.tabs button.active {
+  border-bottom: 2px solid #111;
+  font-weight: bold;
+}
+
+.hero {
+  width: 100%;
+  overflow: hidden;
+}
+
+.hero-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+@media (max-width: 600px) {
+  .site-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .header-logo h1 {
+    font-size: 18px;
+    text-align: left !important;
+    white-space: nowrap;
+  }
   </style>
 </head>
 
@@ -448,20 +548,41 @@
     return schedules;
   }
   %>
+
+
+ <!-- ヘッダー -->
+<header class="header site-header">
+  <div class="header-logo">
+    <h1>SiegSports</h1>
+  </div>
+
+  <div class="header-user">
+    <p>こんにちは、<strong><%= member.name %></strong>さん</p>
+    <div class="header-links">
+      <a href="/mypage">会員情報</a>
+      <a href="/logout">ログアウト</a>
+    </div>
+  </div>
+</header>
+<div class="page">
+<section class="hero">
+  <img
+    src="/images/hero.jpg"
+    alt="SiegSports"
+    class="hero-image"
+  >
+</section>
+<nav class="tabs">
+ 
+  <button onclick="location.href='/'">予約/振替</button>
+  <button onclick="location.href='/monthly'">入会</button>
+  <button onclick="location.href='/mypage/training-logs'">日誌</button>
+  <button class="active" onclick="location.href='/mypage/records'">マイページ</button>
+</nav>
   
   <main class="records-page">
   
-    <section class="records-card mypage-header-card">
-      <h1 class="mypage-main-title">マイページ</h1>
   
-      <div class="mypage-user-name-wrap">
-        <a href="/mypage" class="mypage-user-name-link">
-          <p class="mypage-user-name">
-            <strong><%= member.name %></strong> さん
-          </p>
-        </a>
-      </div>
-    </section>
   
     <section class="records-card">
       <h2 class="section-title">次回予定</h2>
@@ -486,7 +607,7 @@
   
         <div class="next-reservation-card">
           <div class="next-date">
-            <%= getNextRegularLesson(monthlyEntry.course, closedDates) %>
+            <%= getRegularSchedules(monthlyEntry, closedDates, 1)[0]?.displayDate || '' %>
           </div>
   
           <div class="next-plan">
@@ -842,11 +963,11 @@
       </form>
     </section>
 
-    <a href="/" class="back-link">TOPに戻る</a>
+  
 
   </main>
 
- 
+ </div>
   <script>
     const allRecords = <%- JSON.stringify(records || []) %>;
   

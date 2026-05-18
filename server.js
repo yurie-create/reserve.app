@@ -2228,11 +2228,21 @@ db.run(updateSql, [reservationId], function (err) {
           return res.send("練習日誌の取得中にエラーが発生しました");
         }
   
-        res.render("mypage-training-logs", {
-          memberId,
-          member: req.session.member,
-          logs
-        });
+        db.get(
+          `SELECT * FROM members WHERE id = ?`,
+          [req.session.memberId],
+          (err, member) => {
+            if (err) {
+              console.error(err);
+              return res.send("会員情報の取得に失敗しました");
+            }
+        
+            res.render("mypage-training-logs", {
+              logs,
+              member
+            });
+          }
+        );
       }
     );
   });

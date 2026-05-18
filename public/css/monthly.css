@@ -48,7 +48,7 @@
   
   .hero-image {
     width: 100%;
-    height: 220px;
+    height: 200px;
     object-fit: cover;
   }
   
@@ -337,4 +337,11 @@
 
   .header-links a:hover {
     background: #eaeaea;
+  }
+
+  .page {
+    max-width: 480px;
+    margin: 0 auto;
+    background: #f5f5f5;
+    min-height: 100vh;
   }

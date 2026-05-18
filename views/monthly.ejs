@@ -18,7 +18,7 @@
     <div class="header-user">
       <p>こんにちは、<strong><%= member.name %></strong>さん</p>
       <div class="header-links">
-        <a href="/mypage/records">マイページ</a>
+        <a href="/mypage">会員情報</a>
         <a href="/logout">ログアウト</a>
       </div>
     </div>
@@ -29,7 +29,7 @@
     </div>
   <% } %>
 </header>
-
+<div class="page">
   <section class="hero">
     <img src="/images/hero.jpg" alt="メインビジュアル" class="hero-image">
   </section>
@@ -38,7 +38,7 @@
     <button onclick="location.href='/'">予約/振替</button>
     <button class="active" onclick="location.href='/monthly'">入会</button>
     <button onclick="location.href='/mypage/training-logs'">日誌</button>
-  <button onclick="location.href='/mypage/records'">記録</button>
+  <button onclick="location.href='/mypage/records'">マイページ</button>
   </nav>
 
   <section class="monthly-card">
@@ -70,6 +70,6 @@
       LINEでお問い合わせ
     </a>
   </div>
-
+</div>
 </body>
 </html>
