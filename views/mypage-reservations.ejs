@@ -59,13 +59,9 @@
               <span class="value"><%= r.time %></span>
             </div>
 
-            <button
-            type="submit"
-            class="cancel-button"
-            onclick="return confirm('キャンセルしますか？')"
-          >
-            キャンセル
-          </button>
+            <form action="/mypage/reservations/<%= r.id %>/cancel" method="POST">
+              <button type="submit" class="cancel-button">キャンセル</button>
+            </form>
           </section>
         <% }) %>
       <% } %>
