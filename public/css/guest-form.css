@@ -637,3 +637,19 @@
   cursor: pointer;
 }
 
+.cancel-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  background: #d11a2a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.cancel-button:active {
+  transform: scale(0.98);
+}
