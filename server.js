@@ -2955,6 +2955,32 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   
   });
 
+  app.get("/admin/slot-reservations/:slotId", (req, res) => {
+
+    const slotId = req.params.slotId;
+  
+    const sql = `
+      SELECT *
+      FROM reservations
+      WHERE slot_id = ?
+      ORDER BY created_at ASC
+    `;
+  
+    db.all(sql, [slotId], (err, reservations) => {
+  
+      if (err) {
+        console.error(err);
+        return res.send("予約情報の取得に失敗しました");
+      }
+  
+      res.render("admin-slot-reservations", {
+        reservations
+      });
+  
+    });
+  
+  });
+
   app.listen(PORT, () => {
     console.log("server start");
   });

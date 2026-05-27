@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>予約詳細</title>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .page {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .item {
+      margin-bottom: 10px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    .value {
+      font-size: 15px;
+      font-weight: bold;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+
+    <a href="/admin/slots" class="back-link">
+      ← スロット管理へ戻る
+    </a>
+
+    <h1>予約詳細</h1>
+
+    <% if (!reservations || reservations.length === 0) { %>
+
+      <p>予約はありません。</p>
+
+    <% } else { %>
+
+      <% reservations.forEach(r => { %>
+
+        <div class="card">
+
+          <div class="item">
+            <div class="label">お子さま / 保護者</div>
+            <div class="value">
+                <%= r.child_name %>（<%= r.parent_name || '保護者名なし' %>）
+              </div>
+          </div>
+
+          <div class="item">
+            <div class="label">メール</div>
+            <div class="value"><%= r.email %></div>
+          </div>
+
+          <div class="item">
+            <div class="label">電話番号</div>
+            <div class="value"><%= r.phone %></div>
+          </div>
+
+          <div class="item">
+            <div class="label">予約日時</div>
+            <div class="value">
+              <%= r.date %> / <%= r.time %>
+            </div>
+          </div>
+
+          <% if (r.note) { %>
+            <div class="item">
+              <div class="label">備考</div>
+              <div class="value"><%= r.note %></div>
+            </div>
+          <% } %>
+
+        </div>
+
+      <% }) %>
+
+    <% } %>
+
+  </div>
+
+</body>
+</html>
