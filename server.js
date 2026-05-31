@@ -442,7 +442,7 @@ app.get('/reschedule', (req, res) => {
             }
   
             resend.emails.send({
-              from: "info@sieg-sports.com",
+              from: "SIEG SPORTS <info@sieg-sports.com>",
               to: "yurie6312@gmail.com",
               subject: "新しい予約が入りました",
               html: `
@@ -464,7 +464,7 @@ app.get('/reschedule', (req, res) => {
             });
   
             resend.emails.send({
-              from: "info@sieg-sports.com",
+              from: "SIEG SPORTS <info@sieg-sports.com>",
               to: email,
               subject: "【ジークスポーツ】ご予約ありがとうございます",
               html: `
@@ -1298,7 +1298,7 @@ res.render('admin-reservation-detail', {
   
             function sendEmailsAndComplete() {
               resend.emails.send({
-                from: 'info@sieg-sports.com',
+                from: "SIEG SPORTS <info@sieg-sports.com>",
                 to: 'yurie6312@gmail.com',
                 subject: '【会員予約】新しい予約が入りました',
                 html: `
@@ -1320,7 +1320,7 @@ res.render('admin-reservation-detail', {
               });
   
               resend.emails.send({
-                from: 'info@sieg-sports.com',
+                from: "SIEG SPORTS <info@sieg-sports.com>",
                 to: member.email,
                 subject: '【ジークスポーツ】ご予約ありがとうございます',
                 html: `
@@ -1522,7 +1522,7 @@ db.run(updateSql, [reservationId], function (err) {
   }
 
   resend.emails.send({
-    from: 'info@sieg-sports.com',
+    from:"SIEG SPORTS <info@sieg-sports.com>",
     to: 'yurie6312@gmail.com',
     subject: '【キャンセル】予約がキャンセルされました',
     html: `
@@ -1668,7 +1668,7 @@ db.run(updateSql, [reservationId], function (err) {
   
             // 管理者メール送信
             resend.emails.send({
-              from: 'info@sieg-sports.com',
+              from: "SIEG SPORTS <info@sieg-sports.com>",
               to: 'yurie6312@gmail.com',
               subject: '【入会申請】新しい月謝会員の申請がありました',
               html: `
@@ -1847,7 +1847,7 @@ db.run(updateSql, [reservationId], function (err) {
               }
         
               resend.emails.send({
-                from: "info@sieg-sports.com",
+                from: "SIEG SPORTS <info@sieg-sports.com>",
                 to: "yurie6312@gmail.com",
                 subject: "【SiegSports】欠席登録がありました",
                 html: `
