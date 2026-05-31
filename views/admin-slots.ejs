@@ -142,7 +142,7 @@
       <details class="summary-box">
         <summary><h3>曜日パターンで追加</h3></summary>
       
-        <form action="/admin/add-slots-pattern" method="POST">
+        <form action="/admin/add-slots-pattern" method="POST" onsubmit="return validateMenusInForm(this)">
       
           <div class="form-group">
             <label>メニュー</label>
@@ -195,7 +195,7 @@
             <input type="number" name="capacity" value="1" required>
           </div>
       
-          <button type="submit" class="submit-button" onclick="return validateMenus()">まとめて追加</button>
+          <button type="submit" class="submit-button">まとめて追加</button>
       
         </form>
       </details>
@@ -558,6 +558,17 @@ flatpickr("#startTimePicker", {
   locale: "ja",
   disableMobile: true
 });
+
+function validateMenusInForm(form) {
+  const checked = form.querySelectorAll('input[name="menu_ids"]:checked');
+
+  if (checked.length === 0) {
+    alert("メニューを選択してください");
+    return false;
+  }
+
+  return true;
+}
   </script>
 </body>
 </html>

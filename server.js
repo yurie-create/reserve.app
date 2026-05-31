@@ -816,9 +816,9 @@ if (slotMinutes > 0) {
     
     
 
-  app.post('/admin/add-slots-pattern',requireAdmin, (req, res) => {
+  app.post('/admin/add-slots-pattern', requireAdmin, (req, res) => {
     const {
-      menu_id,
+      menu_ids,
       weekday,
       start_date,
       end_date,
@@ -826,11 +826,12 @@ if (slotMinutes > 0) {
       end_time,
       capacity
     } = req.body;
-
-    if (!menu_id || !weekday || !start_date || !end_date || !start_time || !end_time || !capacity) {
+  
+    if (!menu_ids || !weekday || !start_date || !end_date || !start_time || !end_time || !capacity) {
       return res.redirect('/admin/slots?error=すべての項目を入力してください');
     }
   
+    const menuIds = Array.isArray(menu_ids) ? menu_ids : [menu_ids];
     const targetWeekday = Number(weekday);
   
     const matchedDates = [];
@@ -843,17 +844,27 @@ if (slotMinutes > 0) {
         const yyyy = current.getFullYear();
         const mm = String(current.getMonth() + 1).padStart(2, '0');
         const dd = String(current.getDate()).padStart(2, '0');
-        const formattedDate = `${yyyy}-${mm}-${dd}`;
   
-        matchedDates.push(formattedDate);
+        matchedDates.push(`${yyyy}-${mm}-${dd}`);
       }
   
       current.setDate(current.getDate() + 1);
     }
   
     if (matchedDates.length === 0) {
-      return res.redirect('/admin/slots');
+      return res.redirect('/admin/slots?error=該当する曜日がありません');
     }
+  
+    const targets = [];
+  
+    menuIds.forEach(menuId => {
+      matchedDates.forEach(date => {
+        targets.push({
+          menu_id: menuId,
+          date
+        });
+      });
+    });
   
     let completed = 0;
     let hasError = false;
@@ -873,63 +884,54 @@ if (slotMinutes > 0) {
       VALUES (?, ?, ?, ?, ?, 1)
     `;
   
-    matchedDates.forEach((date) => {
-      db.get(checkSql, [menu_id, date, start_time, end_time], (err, existingSlot) => {
-        if (err) {
-          console.error('重複確認エラー:', err);
-          hasError = true;
-          completed++;
-  
-          if (completed === matchedDates.length) {
-            return res.status(500).send('曜日パターン追加中にエラーが発生しました');
-          }
-          return;
-        }
-  
-        // すでに同じslotがある場合
-if (existingSlot) {
-  console.log('重複見つかった:', date);
-  duplicateFound = true;
-  completed++;
-
-  if (completed === matchedDates.length) {
-    if (hasError) {
-      return res.status(500).send('曜日パターン追加中にエラーが発生しました');
-    }
-
-    if (duplicateFound) {
-      return res.redirect('/admin/slots?error=重複するスロットがありました');
-    }
-
-    return res.redirect('/admin/slots?success=曜日パターンを追加しました');
-  }
-  return;
-}
-        
-  
-        // なければINSERT
-        db.run(insertSql, [menu_id, date, start_time, end_time, capacity], (err) => {
+    targets.forEach(target => {
+      db.get(
+        checkSql,
+        [target.menu_id, target.date, start_time, end_time],
+        (err, existingSlot) => {
           if (err) {
-            console.error('曜日パターン追加エラー:', err);
+            console.error('重複確認エラー:', err);
             hasError = true;
+            completed++;
+            return checkComplete();
           }
   
-          completed++;
-  
-          if (completed === matchedDates.length) {
-            if (hasError) {
-              return res.status(500).send('曜日パターン追加中にエラーが発生しました');
-            }
-          
-            if (duplicateFound) {
-              return res.redirect('/admin/slots?error=重複するスロットがありました');
-            }
-          
-            return res.redirect('/admin/slots?success=曜日パターンを追加しました');
+          if (existingSlot) {
+            duplicateFound = true;
+            completed++;
+            return checkComplete();
           }
-        });
-      });
+  
+          db.run(
+            insertSql,
+            [target.menu_id, target.date, start_time, end_time, capacity],
+            (err) => {
+              if (err) {
+                console.error('曜日パターン追加エラー:', err);
+                hasError = true;
+              }
+  
+              completed++;
+              checkComplete();
+            }
+          );
+        }
+      );
     });
+  
+    function checkComplete() {
+      if (completed !== targets.length) return;
+  
+      if (hasError) {
+        return res.redirect('/admin/slots?error=曜日パターン追加中にエラーが発生しました');
+      }
+  
+      if (duplicateFound) {
+        return res.redirect('/admin/slots?error=一部、重複するスロットがありました');
+      }
+  
+      return res.redirect('/admin/slots?success=曜日パターンを追加しました');
+    }
   });
 
   
