@@ -2573,7 +2573,8 @@ db.all(closedDatesSql, [], (err, closedDates) => {
     upcomingReservations,
     monthlyEntry,
     closedDates,
-    notices
+    notices,
+    deleted: req.query.deleted
   });
 
 });
@@ -2776,7 +2777,8 @@ db.all(closedDatesSql, [], (err, closedDates) => {
               member,
               unofficialBests,
               officialBests,
-              success: req.query.success
+              success: req.query.success,
+              deleted: req.query.deleted
             });
           }
         );
@@ -2982,6 +2984,73 @@ db.all(closedDatesSql, [], (err, closedDates) => {
     });
   
   });
+
+
+  app.post("/mypage/records/:id/delete", (req, res) => {
+  if (!req.session.memberId) {
+    return res.redirect("/members/login");
+  }
+
+  const recordId = req.params.id;
+
+  db.run(
+    `
+    DELETE FROM personal_records
+    WHERE id = ?
+      AND member_id = ?
+    `,
+    [recordId, req.session.memberId],
+    (err) => {
+      if (err) {
+        console.error(err);
+        return res.send("記録の削除に失敗しました");
+      }
+
+      res.redirect("/mypage/records?deleted=1");
+    }
+  );
+});
+
+app.post("/admin/records/:id/delete", requireAdmin, (req, res) => {
+
+  const recordId = req.params.id;
+
+  db.get(
+    `
+    SELECT member_id
+    FROM personal_records
+    WHERE id = ?
+    `,
+    [recordId],
+    (err, record) => {
+
+      if (err || !record) {
+        console.error(err);
+        return res.send("記録が見つかりません");
+      }
+
+      db.run(
+        `
+        DELETE FROM personal_records
+        WHERE id = ?
+        `,
+        [recordId],
+        (err) => {
+
+          if (err) {
+            console.error(err);
+            return res.send("記録の削除に失敗しました");
+          }
+
+          res.redirect(`/admin/members/${record.member_id}/records?deleted=1`);
+        }
+      );
+
+    }
+  );
+
+});
+
 
   app.listen(PORT, () => {
     console.log("server start");

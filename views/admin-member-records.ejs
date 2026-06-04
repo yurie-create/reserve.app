@@ -208,11 +208,38 @@
     .summary-box[open] summary::after {
       content: "−";
     }
+
+    .record-delete-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 999px;
+  background: #d11a2a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.success-message {
+  background: #e8f7e8;
+  color: #1f7a1f;
+  border: 1px solid #b7e4b7;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: bold;
+}
   </style>
 </head>
 
 <body>
   <main class="records-page">
+    <% if (deleted) { %>
+      <div class="success-message">
+        記録を削除しました。
+      </div>
+    <% } %>
 
     <section class="records-card">
       <h1 class="records-title"><%= member.name %>さんの記録管理</h1>
@@ -334,6 +361,18 @@
                   </div>
 
                   <div class="record-meta"><%= record.date %> / <%= record.meet_name || '自己測定' %></div>
+                  <form
+  action="/admin/records/<%= record.id %>/delete"
+  method="POST"
+  style="display:inline;"
+>
+  <button
+    type="submit"
+    class="record-delete-button"
+  >
+    削除
+  </button>
+</form>
                 </div>
               </div>
             <% }) %>
@@ -390,6 +429,18 @@
                   </div>
 
                   <div class="record-meta"><%= record.date %> / <%= record.meet_name || '大会記録' %></div>
+                  <form
+  action="/admin/records/<%= record.id %>/delete"
+  method="POST"
+  style="display:inline;"
+>
+  <button
+    type="submit"
+    class="record-delete-button"
+  >
+    削除
+  </button>
+</form>
                 </div>
               </div>
             <% }) %>

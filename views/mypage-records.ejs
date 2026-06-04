@@ -470,6 +470,80 @@
     text-align: left !important;
     white-space: nowrap;
   }
+}
+
+
+  .record-delete-button {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #d11a2a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.record-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.record-actions form {
+  margin: 0;
+  display: inline-flex;
+}
+
+.record-action-button {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  height: 28px;
+  min-width: 72px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: bold;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  line-height: 28px;
+  text-align: center;
+  font-family: inherit;
+}
+
+a.record-action-button {
+  display: inline-block;
+}
+
+button.record-action-button {
+  display: inline-block;
+}
+
+.record-action-button.edit {
+  background: #f3f3f3;
+  color: #111;
+  border-color: #ddd;
+}
+
+.record-action-button.delete {
+  background: #d11a2a;
+  color: #fff;
+}
+
+.success-message {
+  background: #e8f7e8;
+  color: #1f7a1f;
+  border: 1px solid #b7e4b7;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: bold;
+}
   </style>
 </head>
 
@@ -581,6 +655,11 @@
 </nav>
   
   <main class="records-page">
+    <% if (deleted) { %>
+      <div class="success-message">
+        記録を削除しました。
+      </div>
+    <% } %>
   
   
   
@@ -845,9 +924,17 @@
 
                 <div class="record-meta"><%= record.date %> / <%= record.meet_name || '自己測定' %></div>
 
-                <a href="/mypage/records/<%= record.id %>/edit" class="record-edit-link">
-                  編集する
-                </a>
+                <div class="record-actions">
+  <a href="/mypage/records/<%= record.id %>/edit" class="record-action-button edit">
+    編集する
+  </a>
+
+  <form action="/mypage/records/<%= record.id %>/delete" method="POST">
+    <button type="submit" class="record-action-button delete">
+      削除
+    </button>
+  </form>
+</div>
               </div>
             </div>
           <% }) %>
@@ -906,9 +993,17 @@
 
                 <div class="record-meta"><%= record.date %> / <%= record.meet_name || '大会記録' %></div>
 
-                <a href="/mypage/records/<%= record.id %>/edit" class="record-edit-link">
-                  編集する
-                </a>
+                <div class="record-actions">
+  <a href="/mypage/records/<%= record.id %>/edit" class="record-action-button edit">
+    編集する
+  </a>
+
+  <form action="/mypage/records/<%= record.id %>/delete" method="POST">
+    <button type="submit" class="record-action-button delete">
+      削除
+    </button>
+  </form>
+</div>
               </div>
             </div>
           <% }) %>
