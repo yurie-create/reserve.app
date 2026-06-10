@@ -544,6 +544,18 @@ button.record-action-button {
   text-align: center;
   font-weight: bold;
 }
+
+.schedule-action-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #555;
+  text-decoration: underline;
+}
+
+.schedule-action-link.cancel {
+  color: #c62828;
+}
   </style>
 </head>
 
@@ -561,18 +573,31 @@ button.record-action-button {
     return closedDates.some(item => item.date === dateStr);
   }
   
-  function getNextWeekdayDate(targetDay, closedDates = [], baseDate = new Date()) {
-    let result = new Date(baseDate);
-  
-    while (true) {
-      const diff = (targetDay + 7 - result.getDay()) % 7 || 7;
-      result.setDate(result.getDate() + diff);
-  
-      if (!isClosedDate(result, closedDates)) break;
+  function getNextWeekdayDate(
+  targetDay,
+  closedDates = [],
+  baseDate = new Date(),
+  includeToday = true
+) {
+  let result = new Date(baseDate);
+
+  while (true) {
+    let diff = (targetDay + 7 - result.getDay()) % 7;
+
+    if (!includeToday && diff === 0) {
+      diff = 7;
     }
-  
-    return result;
+
+    result.setDate(result.getDate() + diff);
+
+    if (!isClosedDate(result, closedDates)) break;
+
+    result.setDate(result.getDate() + 1);
+    includeToday = true;
   }
+
+  return result;
+}
   
   function formatLessonDate(date) {
     return date.toLocaleDateString("ja-JP", {
@@ -606,15 +631,18 @@ button.record-action-button {
     let baseDate = new Date();
   
     while (schedules.length < count) {
-      const candidates = targetDays.map(day => getNextWeekdayDate(day, closedDates, baseDate));
+      const candidates = targetDays.map(day =>
+  getNextWeekdayDate(day, closedDates, baseDate, schedules.length === 0)
+);
       const nextDate = candidates.sort((a, b) => a - b)[0];
   
       schedules.push({
-        date: toDateStr(nextDate),
-        displayDate: formatLessonDate(nextDate),
-        planLabel: getCourseLabel(course),
-        time: "定期練習"
-      });
+  date: toDateStr(nextDate),
+  displayDate: formatLessonDate(nextDate),
+  planLabel: getCourseLabel(course),
+  time: "定期練習",
+  type: "regular"
+});
   
       baseDate = new Date(nextDate);
     }
@@ -665,78 +693,74 @@ button.record-action-button {
   
     <section class="records-card">
       <h2 class="section-title">次回予定</h2>
+
+      <%
+const reservationSchedules = (upcomingReservations || []).map(r => ({
+  id: r.id,
+  date: r.date,
+  displayDate: formatLessonDate(new Date(r.date)),
+  planLabel: formatPlan(r.plan),
+  time: r.time,
+  type: "reservation"
+}));
+
+const regularSchedules = getRegularSchedules(monthlyEntry, closedDates, 3);
+
+const allSchedules = [...reservationSchedules, ...regularSchedules]
+  .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+const firstSchedule = allSchedules[0] || null;
+const upcomingSchedules = allSchedules.slice(1, 3);
+%>
   
-      <% if (nextReservation) { %>
-  
-        <div class="next-reservation-card">
-          <div class="next-date">
-            <%= nextReservation.date %>
-          </div>
-  
-          <div class="next-plan">
-            <%= formatPlan(nextReservation.plan) %>
-          </div>
-  
-          <div class="next-time">
-            <%= nextReservation.time %>
-          </div>
-        </div>
-  
-      <% } else if (monthlyEntry) { %>
-  
-        <div class="next-reservation-card">
-          <div class="next-date">
-            <%= getRegularSchedules(monthlyEntry, closedDates, 1)[0]?.displayDate || '' %>
-          </div>
-  
-          <div class="next-plan">
-            <% if (monthlyEntry.course === 'elementary_wed') { %>
-              小学生 水曜コース
-            <% } else if (monthlyEntry.course === 'elementary_fri') { %>
-              小学生 金曜コース
-            <% } else if (monthlyEntry.course === 'elementary_twice') { %>
-              小学生 週2回コース
-            <% } else if (monthlyEntry.course === 'junior_wed') { %>
-              中学生 水曜コース
-            <% } else if (monthlyEntry.course === 'junior_fri') { %>
-              中学生 金曜コース
-            <% } else if (monthlyEntry.course === 'junior_twice') { %>
-              中学生 週2回コース
-            <% } else { %>
-              <%= monthlyEntry.course %>
-            <% } %>
-          </div>
-  
-          <div class="next-time">
-            定期練習の予定です
-          </div>
-  
-        </div>
-  
-      <% } else { %>
-  
-        <p>現在予約中の予定はありません。</p>
-  
-      <% } %>
+     
+<% if (firstSchedule) { %>
+
+  <div class="next-reservation-card">
+    <div class="next-date">
+      <%= firstSchedule.displayDate %>
+    </div>
+
+    <div class="next-plan">
+      <%= firstSchedule.planLabel %>
+    </div>
+
+    <div class="next-time">
+      <%= firstSchedule.time %>
+    </div>
+
+    <% if (firstSchedule.type === "regular") { %>
+      <a href="/reschedule" class="schedule-action-link">
+        振替・欠席
+      </a>
+    <% } %>
+
+    <% if (firstSchedule.type === "reservation") { %>
+      <form
+        action="/mypage/reservations/<%= firstSchedule.id %>/cancel"
+        method="POST"
+      >
+        <button
+          type="submit"
+          class="schedule-action-link cancel"
+          style="background:none;border:none;padding:0;"
+        >
+          予約をキャンセル 
+        </button>
+      </form>
+    <% } %>
+  </div>
+
+<% } else { %>
+
+  <p>現在予定はありません。</p>
+
+<% } %>
       <button type="button" class="schedule-toggle-btn" onclick="toggleUpcomingSchedules()">
         今後の予定を確認
       </button>
       <div id="upcomingSchedulesBox" class="upcoming-schedules-box" style="display:none;">
 
-        <%
-        const reservationSchedules = (upcomingReservations || []).map(r => ({
-          date: r.date,
-          displayDate: r.date,
-          planLabel: formatPlan(r.plan),
-          time: r.time
-        }));
-      
-        const regularSchedules = getRegularSchedules(monthlyEntry, closedDates, 2);
-      
-        const upcomingSchedules = [...reservationSchedules, ...regularSchedules]
-  .sort((a, b) => new Date(a.date) - new Date(b.date))
-  .slice(1, 3);
-        %>
       
         <% if (upcomingSchedules.length > 0) { %>
       
@@ -755,6 +779,31 @@ button.record-action-button {
               <div class="upcoming-time">
                 <%= item.time %>
               </div>
+
+              <% if (item.type === "regular") { %>
+
+                <a href="/reschedule" class="schedule-action-link">
+                  振替・欠席
+                </a>
+              
+              <% } %>
+              
+              <% if (item.type === "reservation") { %>
+              
+                <form
+                  action="/mypage/reservations/<%= item.id %>/cancel"
+                  method="POST"
+                >
+                  <button
+                    type="submit"
+                    class="schedule-action-link cancel"
+                    style="background:none;border:none;padding:0;"
+                  >
+                    予約をキャンセル
+                  </button>
+                </form>
+              
+              <% } %>
       
             </div>
       
