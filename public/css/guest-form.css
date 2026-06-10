@@ -672,3 +672,22 @@
   color: #fff;
   font-weight: bold;
 }
+
+.history-links {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 18px;
+  flex-wrap: wrap;
+}
+
+.history-link {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #f3f3f3;
+  color: #111;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: bold;
+  border: 1px solid #ddd;
+}

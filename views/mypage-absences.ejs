@@ -20,7 +20,12 @@
         <% absences.forEach(a => { %>
           <div class="summary-item">
             <span class="label">欠席日</span>
-            <span class="value"><%= a.absence_date %></span>
+            <span class="value"><%= new Date(a.absence_date).toLocaleDateString("ja-JP", {
+              year: "numeric",
+              month: "numeric",
+              day: "numeric",
+              weekday: "short"
+            }) %></span>
           </div>
 
           <% if (a.note) { %>
@@ -30,13 +35,14 @@
             </div>
           <% } %>
 
-          <hr style="margin: 16px 0; border: none; border-top: 1px solid #eee;">
+          <hr style="margin: 16px 0; border: none;">
         <% }) %>
       <% } %>
     </div>
 
+
     <div class="bottom-actions">
-      <a href="/mypage" class="back-button">マイページへ戻る</a>
+      <button class="back-button" onclick="location.href='/mypage/records'">マイページに戻る</button>
     </div>
 
   </div>

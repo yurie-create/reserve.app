@@ -556,6 +556,19 @@ button.record-action-button {
 .schedule-action-link.cancel {
   color: #c62828;
 }
+
+
+.upcoming-history-link-wrap {
+  margin-top: 12px;
+  padding-top: 12px;
+  text-align: center;
+}
+
+.upcoming-history-link {
+  font-size: 13px;
+  color: #555;
+  text-decoration: underline;
+}
   </style>
 </head>
 
@@ -804,18 +817,30 @@ const upcomingSchedules = allSchedules.slice(1, 3);
                 </form>
               
               <% } %>
+
       
             </div>
+           
       
           <% }) %>
+
+          <div class="upcoming-history-link-wrap">
+            <a href="/mypage/reservations" class="upcoming-history-link">
+              その他の予約履歴を見る →
+            </a>
+          </div>
+
+          
       
         <% } else { %>
       
           <p>現在予定はありません。</p>
       
         <% } %>
+
       
       </div>
+
       
     </section>
 
