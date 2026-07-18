@@ -691,3 +691,10 @@
   font-weight: bold;
   border: 1px solid #ddd;
 }
+
+.option-description {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #555;
+  margin-bottom: 20px;
+}
