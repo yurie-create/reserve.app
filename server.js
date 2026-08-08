@@ -623,18 +623,22 @@ addReservationToGoogleCalendar({
     });
   });
    
-  app.get("/admin/reservations", requireAdmin,(req, res) => {
-    db.all("SELECT * FROM reservations ORDER BY id DESC", (err, rows) => {
-      if (err) {
-        console.error(err);
-        return res.send("予約一覧の取得に失敗しました");
-      }
-  
-      res.render("admin", { reservations: rows });
-    });
-  });
+  app.get("/admin/reservations", requireAdmin, (req, res) => {
 
+    db.all(
+      "SELECT * FROM reservations WHERE status = 'active' ORDER BY id DESC",
+      (err, rows) => {
   
+        if (err) {
+          console.error(err);
+          return res.send("予約一覧の取得に失敗しました");
+        }
+  
+        res.render("admin", { reservations: rows });
+      }
+    );
+  
+  });
 
 
   
