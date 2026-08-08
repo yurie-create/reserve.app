@@ -5,6 +5,7 @@ const dbPath =
     ? "/data/reserve.db"
     : "reserve.db";
 
+
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
@@ -197,6 +198,14 @@ db.run(`
     }
   });
 
+  db.run(`
+  ALTER TABLE reservations
+  ADD COLUMN google_event_id TEXT
+`, (err) => {
+  if (err && !err.message.includes("duplicate column name")) {
+    console.error(err);
+  }
+});
 
 
 });

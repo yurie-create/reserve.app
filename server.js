@@ -8,9 +8,53 @@ require('dotenv').config();
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const bcrypt = require('bcrypt');
+const { google } = require("googleapis");
 const PORT = process.env.PORT || 3000;
 
 
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+
+oauth2Client.setCredentials({
+  refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+});
+
+
+async function addReservationToGoogleCalendar({
+  summary,
+  description,
+  date,
+  startTime,
+  endTime
+}) {
+  const calendar = google.calendar({
+    version: "v3",
+    auth: oauth2Client
+  });
+
+  const event = {
+    summary,
+    description,
+    start: {
+      dateTime: `${date}T${startTime}:00+09:00`,
+      timeZone: "Asia/Tokyo"
+    },
+    end: {
+      dateTime: `${date}T${endTime}:00+09:00`,
+      timeZone: "Asia/Tokyo"
+    }
+  };
+
+  const result = await calendar.events.insert({
+    calendarId: "primary",
+    requestBody: event
+  });
+
+  return result.data;
+}
 
 
 app.use(express.urlencoded({ extended: true }));
@@ -440,6 +484,45 @@ app.get('/reschedule', (req, res) => {
               console.error(err);
               return res.status(500).send("予約保存に失敗しました");
             }
+            const reservationId = this.lastID;
+            const [startTime, endTime] = time.split(" - ");
+
+addReservationToGoogleCalendar({
+  summary: `${planLabel} / ${cleanChildName}`,
+  description: `
+保護者名：${parentName || "なし"}
+お子さま名：${cleanChildName}
+学年：${grade}
+電話番号：${phone}
+メール：${email}
+やりたい練習・相談内容：${note || "なし"}
+  `.trim(),
+  date: cleanDate,
+  startTime,
+  endTime
+})
+.then((event) => {
+  console.log("Googleカレンダー登録成功:", event.id);
+
+  db.run(
+    `
+    UPDATE reservations
+    SET google_event_id = ?
+    WHERE id = ?
+    `,
+    [event.id, reservationId],
+    (err) => {
+      if (err) {
+        console.error("Google eventId 保存失敗:", err);
+      } else {
+        console.log("Google eventId 保存成功");
+      }
+    }
+  );
+})
+  .catch((error) => {
+    console.error("Googleカレンダー登録失敗:", error);
+  });
   
             resend.emails.send({
               from: "SIEG SPORTS <info@sieg-sports.com>",
@@ -1258,6 +1341,7 @@ res.render('admin-reservation-detail', {
               console.error(err);
               return res.status(500).send('予約の保存に失敗しました');
             }
+            const reservationId = this.lastID;
 
             let planLabel = plan;
 
@@ -1299,6 +1383,44 @@ res.render('admin-reservation-detail', {
 
   
             function sendEmailsAndComplete() {
+
+              const [startTime, endTime] = time.split(" - ");
+
+addReservationToGoogleCalendar({
+  summary: `${planLabel} / ${member.name}`,
+  description: `
+会員名：${member.name}
+保護者名：${member.guardian_name || "なし"}
+学年：${member.grade}
+電話番号：${member.phone}
+やりたい練習・相談内容：${note || "なし"}
+  `.trim(),
+  date,
+  startTime,
+  endTime
+})
+.then((event) => {
+  console.log("Googleカレンダー登録成功:", event.id);
+
+  db.run(
+    `
+    UPDATE reservations
+    SET google_event_id = ?
+    WHERE id = ?
+    `,
+    [event.id, reservationId],
+    (err) => {
+      if (err) {
+        console.error("Google eventId 保存失敗:", err);
+      } else {
+        console.log("Google eventId 保存成功");
+      }
+    }
+  );
+})
+  .catch((error) => {
+    console.error("Googleカレンダー登録失敗:", error);
+  });
               resend.emails.send({
                 from: "SIEG SPORTS <info@sieg-sports.com>",
                 to: 'yurie6312@gmail.com',
@@ -1501,27 +1623,44 @@ res.render('admin-reservation-detail', {
         AND member_id = ?
     `;
   
-    db.get(checkSql, [reservationId, req.session.memberId], (err, reservation) => {
+    db.get(checkSql, [reservationId, req.session.memberId], async (err, reservation) => {
       if (err) {
         return res.status(500).send('予約確認に失敗しました');
       }
-  
+    
       if (!reservation) {
         return res.status(403).send('この予約はキャンセルできません');
       }
-  
-      // 削除
+    
+      if (reservation.google_event_id) {
+        try {
+          const calendar = google.calendar({
+            version: "v3",
+            auth: oauth2Client
+          });
+    
+          await calendar.events.delete({
+            calendarId: "primary",
+            eventId: reservation.google_event_id
+          });
+    
+          console.log("Googleカレンダー予定削除成功");
+        } catch (error) {
+          console.error("Googleカレンダー予定削除失敗:", error);
+        }
+      }
+    
       const updateSql = `
-  UPDATE reservations
-  SET status = 'canceled'
-  WHERE id = ?
-`;
-
-db.run(updateSql, [reservationId], function (err) {
-  if (err) {
-    return res.status(500).send('キャンセルに失敗しました');
-
-  }
+        UPDATE reservations
+        SET status = 'canceled'
+        WHERE id = ?
+      `;
+    
+      db.run(updateSql, [reservationId], function (err) {
+        if (err) {
+          return res.status(500).send('キャンセルに失敗しました');
+        }
+    
 
   resend.emails.send({
     from:"SIEG SPORTS <info@sieg-sports.com>",
@@ -2699,17 +2838,49 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   app.post("/admin/reservations/:id/delete", requireAdmin, (req, res) => {
     const reservationId = req.params.id;
   
-    db.run(
-      `DELETE FROM reservations WHERE id = ?`,
+    db.get(
+      `
+      SELECT google_event_id
+      FROM reservations
+      WHERE id = ?
+      `,
       [reservationId],
-      function (err) {
+      async (err, reservation) => {
         if (err) {
           console.error(err);
-          return res.send("削除中にエラーが発生しました");
+          return res.send("予約情報の取得に失敗しました");
+        }
+        console.log("削除対象 reservation:", reservation);
+        try {
+          if (reservation && reservation.google_event_id) {
+            const calendar = google.calendar({
+              version: "v3",
+              auth: oauth2Client
+            });
+  
+            await calendar.events.delete({
+              calendarId: "primary",
+              eventId: reservation.google_event_id
+            });
+  
+            console.log("Googleカレンダー予定削除成功");
+          }
+        } catch (error) {
+          console.error("Googleカレンダー予定削除失敗:", error);
         }
   
-        // 削除後は一覧に戻す
-        res.redirect("/admin/reservations");
+        db.run(
+          `DELETE FROM reservations WHERE id = ?`,
+          [reservationId],
+          function (err) {
+            if (err) {
+              console.error(err);
+              return res.send("削除中にエラーが発生しました");
+            }
+  
+            res.redirect("/admin/reservations");
+          }
+        );
       }
     );
   });
@@ -3050,6 +3221,42 @@ app.post("/admin/records/:id/delete", requireAdmin, (req, res) => {
   );
 
 });
+
+app.get("/auth/google", (req, res) => {
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    prompt: "consent",
+    scope: [
+      "https://www.googleapis.com/auth/calendar.events"
+    ]
+  });
+
+  res.redirect(authUrl);
+});
+
+app.get("/auth/google/callback", async (req, res) => {
+  try {
+    const { code } = req.query;
+
+    if (!code) {
+      return res.send("認証コードが取得できませんでした");
+    }
+
+    const { tokens } = await oauth2Client.getToken(code);
+
+    oauth2Client.setCredentials(tokens);
+
+    console.log("Google認証成功");
+    console.log("refresh_token:", tokens.refresh_token);
+
+    res.send("Googleカレンダーとの連携に成功しました。");
+  } catch (error) {
+    console.error("Google認証エラー:", error);
+    res.status(500).send("Google認証に失敗しました");
+  }
+});
+
+
 
 
   app.listen(PORT, () => {
