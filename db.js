@@ -207,6 +207,15 @@ db.run(`
   }
 });
 
+db.run(`
+  ALTER TABLE monthly_entries
+  ADD COLUMN address TEXT
+`, (err) => {
+  if (err && !err.message.includes("duplicate column name")) {
+    console.error("addressカラム追加エラー:", err);
+  }
+});
+
 
 });
 

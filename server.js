@@ -1145,7 +1145,15 @@ res.render('admin-reservation-detail', {
   });
 
   app.get('/members/:id', (req, res) => {
-    const memberId = req.params.id;
+    if (!req.session.memberId) {
+      return res.redirect('/members/login');
+    }
+
+    const memberId = Number(req.params.id);
+
+    if (memberId !== Number(req.session.memberId)) {
+      return res.status(403).send('この会員情報は閲覧できません');
+    }
   
     const sql = `
       SELECT *
@@ -1723,6 +1731,7 @@ addReservationToGoogleCalendar({
     const {
       school_name,
       birth_date,
+      address,
       course,
       start_month,
       sns_permission,
@@ -1770,22 +1779,23 @@ addReservationToGoogleCalendar({
   
         // 入会情報保存
         const insertSql = `
-          INSERT INTO monthly_entries (
-            member_id,
-            school_name,
-            birth_date,
-            course,
-            start_month,
-            sns_permission
-          ) VALUES (?, ?, ?, ?, ?, ?)
-        `;
-  
+  INSERT INTO monthly_entries (
+    member_id,
+    school_name,
+    birth_date,
+    address,
+    course,
+    start_month,
+    sns_permission
+  ) VALUES (?, ?, ?, ?, ?, ?, ?)
+`;
         db.run(
           insertSql,
           [
             req.session.memberId,
             school_name,
             birth_date,
+            address,
             course,
             start_month,
             sns_permission
@@ -1830,6 +1840,7 @@ addReservationToGoogleCalendar({
                 <h3>■ 入会内容</h3>
                 <p><strong>学校名</strong>：${school_name}</p>
                 <p><strong>生年月日</strong>：${birth_date}</p>
+                <p><strong>住所</strong>：${address}</p>
                 <p><strong>コース</strong>：${courseLabel}</p>
                 <p><strong>入会月</strong>：${start_month}</p>
                 <p><strong>SNS掲載</strong>：${snsPermissionLabel}</p>
@@ -3134,7 +3145,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   
   });
 
-  app.get("/admin/slot-reservations/:slotId", (req, res) => {
+  app.get("/admin/slot-reservations/:slotId", requireAdmin, (req, res) => {
 
     const slotId = req.params.slotId;
   
@@ -3142,6 +3153,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
       SELECT *
       FROM reservations
       WHERE slot_id = ?
+        AND status = 'active'
       ORDER BY created_at ASC
     `;
   
@@ -3226,7 +3238,7 @@ app.post("/admin/records/:id/delete", requireAdmin, (req, res) => {
 
 });
 
-app.get("/auth/google", (req, res) => {
+app.get("/auth/google", requireAdmin, (req, res) => {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
@@ -3238,7 +3250,7 @@ app.get("/auth/google", (req, res) => {
   res.redirect(authUrl);
 });
 
-app.get("/auth/google/callback", async (req, res) => {
+app.get("/auth/google/callback", requireAdmin, async (req, res) => {
   try {
     const { code } = req.query;
 
@@ -3251,7 +3263,6 @@ app.get("/auth/google/callback", async (req, res) => {
     oauth2Client.setCredentials(tokens);
 
     console.log("Google認証成功");
-    console.log("refresh_token:", tokens.refresh_token);
 
     res.send("Googleカレンダーとの連携に成功しました。");
   } catch (error) {
