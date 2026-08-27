@@ -5,11 +5,23 @@ const app = express();
 const db = require("./db");
 const session = require('express-session');
 require('dotenv').config();
+const SQLiteStore = require('connect-sqlite3')(session);
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const bcrypt = require('bcrypt');
 const { google } = require("googleapis");
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET;
+
+if (!sessionSecret) {
+  throw new Error('SESSION_SECRET が設定されていません');
+}
+
+const sessionStore = new SQLiteStore({
+  db: 'sessions.db',
+  dir: isProduction ? '/data' : '.'
+});
 
 
 const oauth2Client = new google.auth.OAuth2(
@@ -58,11 +70,24 @@ async function addReservationToGoogleCalendar({
 
 
 app.use(express.urlencoded({ extended: true }));
+
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
+
 app.use(
   session({
-    secret: 'secret-key',
+    secret: sessionSecret,
+    store: sessionStore,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    rolling: true,
+    cookie: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isProduction,
+      maxAge: 24 * 60 * 60 * 1000
+    }
   })
 );
 app.set("view engine", "ejs");
