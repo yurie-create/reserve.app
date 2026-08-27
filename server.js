@@ -2346,20 +2346,98 @@ addReservationToGoogleCalendar({
 
   app.post('/admin/members/:id/delete', requireAdmin, (req, res) => {
     const { id } = req.params;
-  
-    db.serialize(() => {
-      db.run(`DELETE FROM absences WHERE member_id = ?`, [id]);
-      db.run(`DELETE FROM monthly_entries WHERE member_id = ?`, [id]);
-      db.run(`DELETE FROM reservations WHERE member_id = ?`, [id]);
-      db.run(`DELETE FROM members WHERE id = ?`, [id], function (err) {
-        if (err) {
-          console.error(err);
+
+    db.all(
+      `
+      SELECT DISTINCT google_event_id
+      FROM reservations
+      WHERE member_id = ?
+        AND google_event_id IS NOT NULL
+        AND TRIM(google_event_id) <> ''
+      `,
+      [id],
+      async (eventIdErr, reservations) => {
+        if (eventIdErr) {
+          console.error('Google eventIdの取得に失敗しました:', eventIdErr.message);
           return res.send('会員の削除に失敗しました');
         }
-  
-        res.redirect('/admin/members');
-      });
-    });
+
+        const calendar = google.calendar({
+          version: 'v3',
+          auth: oauth2Client
+        });
+
+        for (const reservation of reservations) {
+          try {
+            await calendar.events.delete({
+              calendarId: 'primary',
+              eventId: reservation.google_event_id
+            });
+            console.log('会員削除時のGoogleカレンダー予定削除成功:', reservation.google_event_id);
+          } catch (error) {
+            const status = error.code || error.response?.status;
+
+            if (Number(status) === 404) {
+              console.log('Googleカレンダー予定は削除済みです:', reservation.google_event_id);
+            } else {
+              console.error('会員削除時のGoogleカレンダー予定削除失敗:', {
+                eventId: reservation.google_event_id,
+                status,
+                message: error.message
+              });
+            }
+          }
+        }
+
+        const deleteQueries = [
+          `DELETE FROM absences WHERE member_id = ?`,
+          `DELETE FROM monthly_entries WHERE member_id = ?`,
+          `DELETE FROM reservations WHERE member_id = ?`,
+          `DELETE FROM personal_records WHERE member_id = ?`,
+          `DELETE FROM training_logs WHERE member_id = ?`,
+          `DELETE FROM members WHERE id = ?`
+        ];
+
+        db.serialize(() => {
+          db.run('BEGIN TRANSACTION', (err) => {
+            if (err) {
+              console.error(err);
+              return res.send('会員の削除に失敗しました');
+            }
+
+            function rollback(error) {
+              console.error(error);
+              db.run('ROLLBACK', (rollbackErr) => {
+                if (rollbackErr) {
+                  console.error('会員削除のロールバックに失敗しました:', rollbackErr);
+                }
+                res.send('会員の削除に失敗しました');
+              });
+            }
+
+            function runDelete(index) {
+              if (index === deleteQueries.length) {
+                return db.run('COMMIT', (commitErr) => {
+                  if (commitErr) {
+                    return rollback(commitErr);
+                  }
+                  res.redirect('/admin/members');
+                });
+              }
+
+              db.run(deleteQueries[index], [id], (deleteErr) => {
+                if (deleteErr) {
+                  return rollback(deleteErr);
+                }
+                runDelete(index + 1);
+              });
+            }
+
+            runDelete(0);
+          });
+        });
+      }
+    );
   });
  
 
