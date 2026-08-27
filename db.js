@@ -5,8 +5,13 @@ const dbPath =
     ? "/data/reserve.db"
     : "reserve.db";
 
+function createConnection() {
+  const connection = new sqlite3.Database(dbPath);
+  connection.configure("busyTimeout", 5000);
+  return connection;
+}
 
-const db = new sqlite3.Database(dbPath);
+const db = createConnection();
 
 db.serialize(() => {
   db.run(`
@@ -220,3 +225,4 @@ db.run(`
 });
 
 module.exports = db;
+module.exports.createConnection = createConnection;

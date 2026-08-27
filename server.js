@@ -1348,53 +1348,15 @@ res.render('admin-reservation-detail', {
             note || ''
           ];
   
-          db.run(insertSql, values, function (err) {
-            if (err) {
-              console.error(err);
-              return res.status(500).send('予約の保存に失敗しました');
-            }
-            const reservationId = this.lastID;
+          let planLabel = plan;
 
-            let planLabel = plan;
+          if (plan === 'trial') planLabel = '無料体験';
+          if (plan === 'lesson') planLabel = 'パーソナルレッスン 60分';
+          if (plan === 'personal30') planLabel = 'パーソナルレッスン 30分';
+          if (plan === 'elementary_reschedule') planLabel = '小学生振替';
+          if (plan === 'junior_reschedule') planLabel = '中学生振替';
 
-            if (plan === 'trial') planLabel = '無料体験';
-            if (plan === 'lesson') planLabel = 'パーソナルレッスン 60分';
-            if (plan === 'personal30') planLabel = 'パーソナルレッスン 30分';
-            if (plan === 'elementary_reschedule') planLabel = '小学生振替';
-            if (plan === 'junior_reschedule') planLabel = '中学生振替';
-  
-            if (plan === 'elementary_reschedule' || plan === 'junior_reschedule') {
-              const useAbsenceSql = `
-                UPDATE absences
-                SET used = 1
-                WHERE id = (
-                  SELECT id
-                  FROM absences
-                  WHERE member_id = ?
-                    AND used = 0
-                  ORDER BY absence_date ASC
-                  LIMIT 1
-                )
-              `;
-  
-              db.run(useAbsenceSql, [req.session.memberId], (err) => {
-                if (err) {
-                  console.error('欠席消費エラー:', err);
-                  return res.status(500).send('振替処理に失敗しました');
-                }
-  
-                console.log('欠席1件を消費しました');
-                sendEmailsAndComplete();
-              });
-            } else {
-              sendEmailsAndComplete();
-            }
-
-            
-
-
-  
-            function sendEmailsAndComplete() {
+          function sendEmailsAndComplete(reservationId) {
 
               const [startTime, endTime] = time.split(" - ");
 
@@ -1485,8 +1447,141 @@ addReservationToGoogleCalendar({
               });
   
               res.render('complete');
+          }
+
+          if (plan === 'elementary_reschedule' || plan === 'junior_reschedule') {
+            const transactionDb = db.createConnection();
+
+            function closeTransactionConnection(callback) {
+              transactionDb.close((closeErr) => {
+                if (closeErr) {
+                  console.error('振替予約用DB接続のクローズに失敗しました:', closeErr);
+                }
+                callback();
+              });
             }
-          });
+
+            function rollback(message, error) {
+              if (error) {
+                console.error('振替予約トランザクションエラー:', error);
+              }
+
+              transactionDb.run('ROLLBACK', (rollbackErr) => {
+                if (rollbackErr) {
+                  console.error('振替予約のロールバックに失敗しました:', rollbackErr);
+                }
+
+                closeTransactionConnection(() => {
+                  res.send(message);
+                });
+              });
+            }
+
+            transactionDb.run('BEGIN IMMEDIATE', (beginErr) => {
+              if (beginErr) {
+                console.error('振替予約トランザクション開始エラー:', beginErr);
+                return closeTransactionConnection(() => {
+                  res.status(500).send('振替処理に失敗しました');
+                });
+              }
+
+              transactionDb.get(checkSql, [slotId], (slotErr, currentSlotInfo) => {
+                if (slotErr) {
+                  return rollback('振替処理に失敗しました', slotErr);
+                }
+
+                if (!currentSlotInfo) {
+                  return rollback('対象の予約枠が見つかりません');
+                }
+
+                if (currentSlotInfo.reserved_count >= currentSlotInfo.capacity) {
+                  return rollback('この予約枠は満席です');
+                }
+
+                transactionDb.get(
+                  duplicateSql,
+                  [slotId, req.session.memberId],
+                  (duplicateErr, currentExisting) => {
+                    if (duplicateErr) {
+                      return rollback('振替処理に失敗しました', duplicateErr);
+                    }
+
+                    if (currentExisting) {
+                      return rollback('この予約枠はすでに予約済みです');
+                    }
+
+                    transactionDb.get(
+                      `
+                      SELECT id
+                      FROM absences
+                      WHERE member_id = ?
+                        AND used = 0
+                      ORDER BY absence_date ASC, id ASC
+                      LIMIT 1
+                      `,
+                      [req.session.memberId],
+                      (absenceErr, absence) => {
+                        if (absenceErr) {
+                          return rollback('振替処理に失敗しました', absenceErr);
+                        }
+
+                        if (!absence) {
+                          return rollback('振替予約をするには、先に欠席登録が必要です');
+                        }
+
+                        transactionDb.run(
+                          `
+                          UPDATE absences
+                          SET used = 1
+                          WHERE id = ?
+                            AND member_id = ?
+                            AND used = 0
+                          `,
+                          [absence.id, req.session.memberId],
+                          function (useAbsenceErr) {
+                            if (useAbsenceErr) {
+                              return rollback('振替処理に失敗しました', useAbsenceErr);
+                            }
+
+                            if (this.changes !== 1) {
+                              return rollback('振替予約をするには、先に欠席登録が必要です');
+                            }
+
+                            transactionDb.run(insertSql, values, function (insertErr) {
+                              if (insertErr) {
+                                return rollback('予約の保存に失敗しました', insertErr);
+                              }
+
+                              const reservationId = this.lastID;
+
+                              transactionDb.run('COMMIT', (commitErr) => {
+                                if (commitErr) {
+                                  return rollback('振替処理に失敗しました', commitErr);
+                                }
+
+                                closeTransactionConnection(() => {
+                                  sendEmailsAndComplete(reservationId);
+                                });
+                              });
+                            });
+                          }
+                        );
+                      }
+                    );
+                  }
+                );
+              });
+            });
+          } else {
+            db.run(insertSql, values, function (err) {
+              if (err) {
+                console.error(err);
+                return res.status(500).send('予約の保存に失敗しました');
+              }
+
+              sendEmailsAndComplete(this.lastID);
+            });
+          }
         });
       });
     });
