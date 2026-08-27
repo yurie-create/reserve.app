@@ -1310,9 +1310,32 @@ res.render('admin-reservation-detail', {
           return res.send('パスワードが間違っています');
         }
   
-        req.session.memberId = matchedMember.id;
         const next = req.body.next || '/mypage/records';
-        res.redirect(next);
+        const wasAdmin = req.session.isAdmin === true;
+
+        req.session.regenerate((regenerateErr) => {
+          if (regenerateErr) {
+            console.error('会員ログインのセッション再生成に失敗しました');
+            return res.status(500).send('ログインに失敗しました');
+          }
+
+          req.session.memberId = matchedMember.id;
+
+          if (wasAdmin) {
+            req.session.isAdmin = true;
+          }
+
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error('会員ログインのセッション保存に失敗しました');
+              return req.session.destroy(() => {
+                res.status(500).send('ログインに失敗しました');
+              });
+            }
+
+            res.redirect(next);
+          });
+        });
       } catch (error) {
         console.error(error);
         return res.status(500).send('ログイン処理に失敗しました');
@@ -2449,8 +2472,31 @@ addReservationToGoogleCalendar({
       adminId === process.env.ADMIN_ID &&
       password === process.env.ADMIN_PASSWORD
     ) {
-      req.session.isAdmin = true;
-      return res.redirect('/admin');
+      const existingMemberId = req.session.memberId;
+
+      return req.session.regenerate((regenerateErr) => {
+        if (regenerateErr) {
+          console.error('管理者ログインのセッション再生成に失敗しました');
+          return res.redirect('/admin/login?error=1');
+        }
+
+        req.session.isAdmin = true;
+
+        if (existingMemberId) {
+          req.session.memberId = existingMemberId;
+        }
+
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('管理者ログインのセッション保存に失敗しました');
+            return req.session.destroy(() => {
+              res.redirect('/admin/login?error=1');
+            });
+          }
+
+          res.redirect('/admin');
+        });
+      });
     }
   
     res.redirect('/admin/login?error=1');
