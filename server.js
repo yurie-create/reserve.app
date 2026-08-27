@@ -424,6 +424,7 @@ app.get('/reschedule', (req, res) => {
         ON slots.id = reservations.slot_id
         AND reservations.status = 'active'
       WHERE slots.id = ?
+        AND slots.is_active = 1
       GROUP BY slots.id
     `;
   
@@ -464,27 +465,21 @@ app.get('/reschedule', (req, res) => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
   
-        db.run(
-          insertSql,
-          [
-            plan,
-            slotId,
-            cleanDate,
-            time,
-            parentName,
-            cleanChildName,
-            childKana,
-            grade,
-            email,
-            phone,
-            note || ""
-          ],
-          function (err) {
-            if (err) {
-              console.error(err);
-              return res.status(500).send("予約保存に失敗しました");
-            }
-            const reservationId = this.lastID;
+        const insertValues = [
+          plan,
+          slotId,
+          cleanDate,
+          time,
+          parentName,
+          cleanChildName,
+          childKana,
+          grade,
+          email,
+          phone,
+          note || ""
+        ];
+
+        function sendEmailsAndComplete(reservationId) {
             const [startTime, endTime] = time.split(" - ");
 
 addReservationToGoogleCalendar({
@@ -616,9 +611,90 @@ addReservationToGoogleCalendar({
               console.error("ユーザー向けメール送信失敗:", error);
             });
   
-            res.render("complete");
+          res.render("complete");
+        }
+
+        const transactionDb = db.createConnection();
+
+        function closeTransactionConnection(callback) {
+          transactionDb.close((closeErr) => {
+            if (closeErr) {
+              console.error("ゲスト予約用DB接続のクローズに失敗しました:", closeErr);
+            }
+            callback();
+          });
+        }
+
+        function rollback(message, error) {
+          if (error) {
+            console.error("ゲスト予約トランザクションエラー:", error);
           }
-        );
+
+          transactionDb.run("ROLLBACK", (rollbackErr) => {
+            if (rollbackErr) {
+              console.error("ゲスト予約のロールバックに失敗しました:", rollbackErr);
+            }
+
+            closeTransactionConnection(() => {
+              res.send(message);
+            });
+          });
+        }
+
+        transactionDb.run("BEGIN IMMEDIATE", (beginErr) => {
+          if (beginErr) {
+            console.error("ゲスト予約トランザクション開始エラー:", beginErr);
+            return closeTransactionConnection(() => {
+              res.status(500).send("予約保存に失敗しました");
+            });
+          }
+
+          transactionDb.get(checkSql, [slotId], (slotErr, currentSlotInfo) => {
+            if (slotErr) {
+              return rollback("空き状況の確認に失敗しました", slotErr);
+            }
+
+            if (!currentSlotInfo) {
+              return rollback("対象の予約枠が見つかりません");
+            }
+
+            if (currentSlotInfo.reserved_count >= currentSlotInfo.capacity) {
+              return rollback("この予約枠は満席です");
+            }
+
+            transactionDb.get(
+              duplicateSql,
+              [slotId, email, cleanChildName],
+              (duplicateErr, currentExisting) => {
+                if (duplicateErr) {
+                  return rollback("重複予約の確認に失敗しました", duplicateErr);
+                }
+
+                if (currentExisting) {
+                  return rollback("この予約枠はすでに予約済みです");
+                }
+
+                transactionDb.run(insertSql, insertValues, function (insertErr) {
+                  if (insertErr) {
+                    return rollback("予約保存に失敗しました", insertErr);
+                  }
+
+                  const reservationId = this.lastID;
+
+                  transactionDb.run("COMMIT", (commitErr) => {
+                    if (commitErr) {
+                      return rollback("予約保存に失敗しました", commitErr);
+                    }
+
+                    closeTransactionConnection(() => {
+                      sendEmailsAndComplete(reservationId);
+                    });
+                  });
+                });
+              }
+            );
+          });
+        });
       });
     });
   });
@@ -1283,6 +1359,7 @@ res.render('admin-reservation-detail', {
           ON slots.id = reservations.slot_id
           AND reservations.status = 'active'
         WHERE slots.id = ?
+          AND slots.is_active = 1
         GROUP BY slots.id
       `;
   
@@ -1573,13 +1650,86 @@ addReservationToGoogleCalendar({
               });
             });
           } else {
-            db.run(insertSql, values, function (err) {
-              if (err) {
-                console.error(err);
-                return res.status(500).send('予約の保存に失敗しました');
+            const transactionDb = db.createConnection();
+
+            function closeTransactionConnection(callback) {
+              transactionDb.close((closeErr) => {
+                if (closeErr) {
+                  console.error('会員予約用DB接続のクローズに失敗しました:', closeErr);
+                }
+                callback();
+              });
+            }
+
+            function rollback(message, error) {
+              if (error) {
+                console.error('会員予約トランザクションエラー:', error);
               }
 
-              sendEmailsAndComplete(this.lastID);
+              transactionDb.run('ROLLBACK', (rollbackErr) => {
+                if (rollbackErr) {
+                  console.error('会員予約のロールバックに失敗しました:', rollbackErr);
+                }
+
+                closeTransactionConnection(() => {
+                  res.send(message);
+                });
+              });
+            }
+
+            transactionDb.run('BEGIN IMMEDIATE', (beginErr) => {
+              if (beginErr) {
+                console.error('会員予約トランザクション開始エラー:', beginErr);
+                return closeTransactionConnection(() => {
+                  res.status(500).send('予約の保存に失敗しました');
+                });
+              }
+
+              transactionDb.get(checkSql, [slotId], (slotErr, currentSlotInfo) => {
+                if (slotErr) {
+                  return rollback('空き状況の確認に失敗しました', slotErr);
+                }
+
+                if (!currentSlotInfo) {
+                  return rollback('対象の予約枠が見つかりません');
+                }
+
+                if (currentSlotInfo.reserved_count >= currentSlotInfo.capacity) {
+                  return rollback('この予約枠は満席です');
+                }
+
+                transactionDb.get(
+                  duplicateSql,
+                  [slotId, req.session.memberId],
+                  (duplicateErr, currentExisting) => {
+                    if (duplicateErr) {
+                      return rollback('重複予約の確認に失敗しました', duplicateErr);
+                    }
+
+                    if (currentExisting) {
+                      return rollback('この予約枠はすでに予約済みです');
+                    }
+
+                    transactionDb.run(insertSql, values, function (insertErr) {
+                      if (insertErr) {
+                        return rollback('予約の保存に失敗しました', insertErr);
+                      }
+
+                      const reservationId = this.lastID;
+
+                      transactionDb.run('COMMIT', (commitErr) => {
+                        if (commitErr) {
+                          return rollback('予約の保存に失敗しました', commitErr);
+                        }
+
+                        closeTransactionConnection(() => {
+                          sendEmailsAndComplete(reservationId);
+                        });
+                      });
+                    });
+                  }
+                );
+              });
             });
           }
         });
