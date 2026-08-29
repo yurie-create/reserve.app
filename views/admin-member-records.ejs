@@ -366,6 +366,7 @@
   method="POST"
   style="display:inline;"
 >
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <button
     type="submit"
     class="record-delete-button"
@@ -434,6 +435,7 @@
   method="POST"
   style="display:inline;"
 >
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <button
     type="submit"
     class="record-delete-button"
@@ -453,6 +455,7 @@
       <h2 class="section-title">記録を登録</h2>
 
       <form action="/admin/members/<%= member.id %>/records" method="POST" class="record-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <label>日付</label>
         <input type="date" name="date" required>
 

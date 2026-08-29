@@ -16,6 +16,7 @@
     <a href="/admin/members" class="top-link">← 会員一覧へ戻る</a>
 
     <form action="/admin/members/<%= member.id %>/edit" method="POST" class="summary-box">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
       <div class="form-group">
         <label>名前</label>

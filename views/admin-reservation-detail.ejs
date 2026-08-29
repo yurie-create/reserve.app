@@ -87,6 +87,7 @@
   onsubmit="return confirm('この予約を削除してもよろしいですか？');"
   style="margin-top: 20px;"
 >
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <button type="submit" class="delete-button">
     予約を削除する
   </button>

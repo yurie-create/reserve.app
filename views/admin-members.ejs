@@ -192,6 +192,7 @@
                     </a>
                   
                     <form action="/admin/members/<%= member.id %>/delete" method="POST" onsubmit="return confirm('この会員を削除しますか？')">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <button type="submit" class="delete-button">
                         削除
                       </button>

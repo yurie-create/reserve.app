@@ -16,6 +16,7 @@
     <a href="/admin/monthly-entries" class="top-link">← 入会申請一覧へ戻る</a>
 
     <form action="/admin/monthly-entries/<%= entry.id %>" method="POST" class="summary-box">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
       <div class="form-group">
         <label>名前</label>

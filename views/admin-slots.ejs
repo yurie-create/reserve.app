@@ -47,6 +47,7 @@
         <summary> <h3>空き枠追加</h3> </summary>
       
         <form action="/admin/add-slot" method="POST">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="form-group">
             <label>メニュー</label>
             <div class="menu-checkbox-list">
@@ -87,6 +88,7 @@
         <summary><h3>複数日まとめ追加</h3></summary>
       
         <form action="/admin/add-slots-bulk" method="POST">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="form-group">
             <label>メニュー</label>
             <div class="menu-checkbox-list">
@@ -143,6 +145,7 @@
         <summary><h3>曜日パターンで追加</h3></summary>
       
         <form action="/admin/add-slots-pattern" method="POST" onsubmit="return validateMenusInForm(this)">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       
           <div class="form-group">
             <label>メニュー</label>
@@ -251,6 +254,7 @@
     <% } %>
 
     <form action="/admin/slots/delete-selected" method="POST">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="table-scroll">
         <table class="slot-table">
       <thead>
@@ -526,6 +530,7 @@ function changeSlotCalendarMonth(diff) {
 </td>
             <td>
     <form action="/admin/delete-slot" method="POST" onsubmit="return confirm('このスロットを削除しますか？')">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <input type="hidden" name="id" value="${slot.id}">
       <button type="submit" class="delete-button">削除</button>
     </form>

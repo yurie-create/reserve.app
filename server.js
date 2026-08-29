@@ -4,6 +4,7 @@ const express = require("express");
 const app = express();
 const db = require("./db");
 const session = require('express-session');
+const { csrfSync } = require('csrf-sync');
 require('dotenv').config();
 const SQLiteStore = require('connect-sqlite3')(session);
 const { Resend } = require('resend');
@@ -90,6 +91,33 @@ app.use(
     }
   })
 );
+
+const {
+  generateToken: generateCsrfToken,
+  csrfSynchronisedProtection,
+  invalidCsrfTokenError
+} = csrfSync({
+  getTokenFromRequest: (req) => req.body?._csrf
+});
+
+function requireAdminCsrf(req, res, next) {
+  csrfSynchronisedProtection(req, res, (err) => {
+    if (err === invalidCsrfTokenError) {
+      return res.status(403).send('不正なリクエストです。管理画面を開き直してください。');
+    }
+
+    next(err);
+  });
+}
+
+app.use((req, res, next) => {
+  if (req.method === 'GET' && req.session.isAdmin === true) {
+    res.locals.csrfToken = generateCsrfToken(req);
+  }
+
+  next();
+});
+
 app.set("view engine", "ejs");
 app.use(express.static("public"));
 app.use((req, res, next) => {
@@ -824,7 +852,7 @@ addReservationToGoogleCalendar({
     });
   });
  
-  app.post("/admin/add-slot", requireAdmin, (req, res) => {
+  app.post("/admin/add-slot", requireAdmin, requireAdminCsrf, (req, res) => {
     let { menu_ids, date, start_time, end_time, capacity } = req.body;
   
     if (!menu_ids) {
@@ -858,7 +886,7 @@ addReservationToGoogleCalendar({
     });
   });
 
-  app.post("/admin/delete-slot", requireAdmin,(req, res) => {
+  app.post("/admin/delete-slot", requireAdmin, requireAdminCsrf, (req, res) => {
     const { id } = req.body;
   
     db.run("DELETE FROM slots WHERE id = ?", [id], function (err) {
@@ -871,7 +899,7 @@ addReservationToGoogleCalendar({
     });
   });
 
-  app.post('/admin/slots/delete-selected', requireAdmin, (req, res) => {
+  app.post('/admin/slots/delete-selected', requireAdmin, requireAdminCsrf, (req, res) => {
     let { slot_ids } = req.body;
   
     if (!slot_ids) {
@@ -899,7 +927,7 @@ addReservationToGoogleCalendar({
     });
   });
 
-  app.post("/admin/add-slots-bulk", requireAdmin, (req, res) => {
+  app.post("/admin/add-slots-bulk", requireAdmin, requireAdminCsrf, (req, res) => {
     let {
       menu_ids,
       dates,
@@ -1004,7 +1032,7 @@ if (slotMinutes > 0) {
     
     
 
-  app.post('/admin/add-slots-pattern', requireAdmin, (req, res) => {
+  app.post('/admin/add-slots-pattern', requireAdmin, requireAdminCsrf, (req, res) => {
     const {
       menu_ids,
       weekday,
@@ -2424,7 +2452,7 @@ addReservationToGoogleCalendar({
     });
   });
 
-  app.post('/admin/monthly-entries/:id',requireAdmin, (req, res) => {
+  app.post('/admin/monthly-entries/:id', requireAdmin, requireAdminCsrf, (req, res) => {
     const entryId = req.params.id;
   
     const {
@@ -2539,7 +2567,7 @@ addReservationToGoogleCalendar({
   });
 
 
-  app.post('/admin/members/:id/edit', requireAdmin, (req, res) => {
+  app.post('/admin/members/:id/edit', requireAdmin, requireAdminCsrf, (req, res) => {
     const { id } = req.params;
   
     const {
@@ -2660,7 +2688,7 @@ addReservationToGoogleCalendar({
     );
   });
 
-  app.post('/admin/members/:id/delete', requireAdmin, (req, res) => {
+  app.post('/admin/members/:id/delete', requireAdmin, requireAdminCsrf, (req, res) => {
     const { id } = req.params;
 
     db.all(
@@ -3244,7 +3272,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   });
 
 
-  app.post("/admin/reservations/:id/delete", requireAdmin, (req, res) => {
+  app.post("/admin/reservations/:id/delete", requireAdmin, requireAdminCsrf, (req, res) => {
     const reservationId = req.params.id;
   
     db.get(
@@ -3367,7 +3395,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   });
 
 
-  app.post("/admin/members/:id/records", requireAdmin, (req, res) => {
+  app.post("/admin/members/:id/records", requireAdmin, requireAdminCsrf, (req, res) => {
     const memberId = req.params.id;
     const { date, event_name, record_display, record_type, meet_name } = req.body;
   
@@ -3420,7 +3448,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   });
 
 
-  app.post("/admin/closed-dates", requireAdmin, (req, res) => {
+  app.post("/admin/closed-dates", requireAdmin, requireAdminCsrf, (req, res) => {
 
     const { date, note } = req.body;
   
@@ -3466,7 +3494,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   
   });
   
-  app.post("/admin/notices", requireAdmin, (req, res) => {
+  app.post("/admin/notices", requireAdmin, requireAdminCsrf, (req, res) => {
   
     const { title, body } = req.body;
   
@@ -3515,7 +3543,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
     );
   });
 
-  app.post("/admin/notices/:id/delete", requireAdmin, (req, res) => {
+  app.post("/admin/notices/:id/delete", requireAdmin, requireAdminCsrf, (req, res) => {
 
     const noticeId = req.params.id;
   
@@ -3592,7 +3620,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   );
 });
 
-app.post("/admin/records/:id/delete", requireAdmin, (req, res) => {
+app.post("/admin/records/:id/delete", requireAdmin, requireAdminCsrf, (req, res) => {
 
   const recordId = req.params.id;
 

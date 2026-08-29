@@ -64,6 +64,7 @@
 
   <div class="card">
     <form action="/admin/closed-dates" method="POST">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
       <label>休講日</label>
       <input type="date" name="date" required>
