@@ -753,6 +753,7 @@ const upcomingSchedules = allSchedules.slice(1, 3);
         action="/mypage/reservations/<%= firstSchedule.id %>/cancel"
         method="POST"
       >
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button
           type="submit"
           class="schedule-action-link cancel"
@@ -807,6 +808,7 @@ const upcomingSchedules = allSchedules.slice(1, 3);
                   action="/mypage/reservations/<%= item.id %>/cancel"
                   method="POST"
                 >
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button
                     type="submit"
                     class="schedule-action-link cancel"
@@ -1004,6 +1006,7 @@ const upcomingSchedules = allSchedules.slice(1, 3);
   </a>
 
   <form action="/mypage/records/<%= record.id %>/delete" method="POST">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit" class="record-action-button delete">
       削除
     </button>
@@ -1073,6 +1076,7 @@ const upcomingSchedules = allSchedules.slice(1, 3);
   </a>
 
   <form action="/mypage/records/<%= record.id %>/delete" method="POST">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <button type="submit" class="record-action-button delete">
       削除
     </button>
@@ -1091,6 +1095,7 @@ const upcomingSchedules = allSchedules.slice(1, 3);
       <h2 class="section-title">記録を登録</h2>
 
       <form action="/mypage/records" method="POST" class="record-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <label for="date">日付</label>
         <input type="date" name="date" id="date" required>
 

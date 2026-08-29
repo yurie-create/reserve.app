@@ -60,6 +60,7 @@
             </div>
 
             <form action="/mypage/reservations/<%= r.id %>/cancel" method="POST">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <button type="submit" class="cancel-button">キャンセル</button>
             </form>
           </section>

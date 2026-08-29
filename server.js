@@ -110,8 +110,26 @@ function requireAdminCsrf(req, res, next) {
   });
 }
 
+function requireMemberCsrf(req, res, next) {
+  csrfSynchronisedProtection(req, res, (err) => {
+    if (err === invalidCsrfTokenError) {
+      return res.status(403).send('不正なリクエストです。ページを開き直してください。');
+    }
+
+    next(err);
+  });
+}
+
 app.use((req, res, next) => {
   if (req.method === 'GET' && req.session.isAdmin === true) {
+    res.locals.csrfToken = generateCsrfToken(req);
+  }
+
+  next();
+});
+
+app.use((req, res, next) => {
+  if (req.method === 'GET' && req.session.memberId) {
     res.locals.csrfToken = generateCsrfToken(req);
   }
 
@@ -192,6 +210,13 @@ app.locals.formatCourse = (course) => {
 function requireAdmin(req, res, next) {
   if (!req.session.isAdmin) {
     return res.redirect('/admin/login');
+  }
+  next();
+}
+
+function requireMember(req, res, next) {
+  if (!req.session.memberId) {
+    return res.redirect('/members/login');
   }
   next();
 }
@@ -1404,7 +1429,7 @@ res.render('admin-reservation-detail', {
     });
   });
 
-  app.post('/member-reserve', (req, res) => {
+  app.post('/member-reserve', requireMember, requireMemberCsrf, (req, res) => {
     const { plan, date, time, slotId, note } = req.body;
 
     if (!req.session.memberId) {
@@ -1941,7 +1966,7 @@ addReservationToGoogleCalendar({
       });
     });
   });
-  app.post('/mypage/reservations/:id/cancel', (req, res) => {
+  app.post('/mypage/reservations/:id/cancel', requireMember, requireMemberCsrf, (req, res) => {
     if (!req.session.memberId) {
       return res.redirect('/members/login');
     }
@@ -2043,7 +2068,7 @@ addReservationToGoogleCalendar({
     res.render('monthly-entry-complete');
   });
 
-  app.post('/monthly-entry', (req, res) => {
+  app.post('/monthly-entry', requireMember, requireMemberCsrf, (req, res) => {
     // ログインチェック
     if (!req.session.memberId) {
       return res.redirect('/members/login');
@@ -2226,7 +2251,7 @@ addReservationToGoogleCalendar({
     });
   });
 
-  app.post('/mypage/absences', (req, res) => {
+  app.post('/mypage/absences', requireMember, requireMemberCsrf, (req, res) => {
     if (!req.session.memberId) {
       return res.redirect('/members/login');
     }
@@ -2825,7 +2850,7 @@ addReservationToGoogleCalendar({
     );
   });
 
-  app.post("/mypage/training-logs", (req, res) => {
+  app.post("/mypage/training-logs", requireMember, requireMemberCsrf, (req, res) => {
     if (!req.session.memberId) {
       return res.redirect("/members/login");
     }
@@ -2919,7 +2944,7 @@ addReservationToGoogleCalendar({
     );
   });
 
-  app.post("/mypage/training-logs/:id/edit", (req, res) => {
+  app.post("/mypage/training-logs/:id/edit", requireMember, requireMemberCsrf, (req, res) => {
     if (!req.session.memberId) {
       return res.redirect("/members/login");
     }
@@ -2946,7 +2971,7 @@ addReservationToGoogleCalendar({
     );
   });
 
-  app.post("/mypage/training-logs/:id/delete", (req, res) => {
+  app.post("/mypage/training-logs/:id/delete", requireMember, requireMemberCsrf, (req, res) => {
     if (!req.session.memberId) {
       return res.redirect("/members/login");
     }
@@ -3163,7 +3188,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
     );
   });
 
-  app.post("/mypage/records", (req, res) => {
+  app.post("/mypage/records", requireMember, requireMemberCsrf, (req, res) => {
     if (!req.session.memberId) {
       return res.redirect("/members/login");
     }
@@ -3231,7 +3256,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
     );
   });
 
-  app.post("/mypage/records/:id/edit", (req, res) => {
+  app.post("/mypage/records/:id/edit", requireMember, requireMemberCsrf, (req, res) => {
     if (!req.session.memberId) {
       return res.redirect("/members/login");
     }
@@ -3595,7 +3620,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
   });
 
 
-  app.post("/mypage/records/:id/delete", (req, res) => {
+  app.post("/mypage/records/:id/delete", requireMember, requireMemberCsrf, (req, res) => {
   if (!req.session.memberId) {
     return res.redirect("/members/login");
   }

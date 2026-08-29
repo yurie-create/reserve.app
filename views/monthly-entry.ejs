@@ -16,6 +16,7 @@
     
 
     <form action="/monthly-entry" method="POST" class="summary-box">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <p style="margin-bottom: 16px; line-height: 1.8;">
             以下の内容をご入力のうえ、入会手続きを進めてください。<br>
             内容確認後、こちらからご連絡させていただきます。

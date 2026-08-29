@@ -51,6 +51,7 @@
       </section>
 
       <form action="/member-reserve" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="plan" value="<%= plan %>">
         <input type="hidden" name="date" value="<%= date %>">
         <input type="hidden" name="time" value="<%= time %>">
