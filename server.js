@@ -561,7 +561,7 @@ app.get('/reschedule', (req, res) => {
             const [startTime, endTime] = time.split(" - ");
 
 addReservationToGoogleCalendar({
-  summary: `${planLabel} / ${cleanChildName}`,
+  summary: `${cleanChildName}｜${planLabel}`,
   description: `
 保護者名：${parentName || "なし"}
 お子さま名：${cleanChildName}
@@ -1539,7 +1539,7 @@ res.render('admin-reservation-detail', {
               const [startTime, endTime] = time.split(" - ");
 
 addReservationToGoogleCalendar({
-  summary: `${planLabel} / ${member.name}`,
+  summary: `${member.name}｜${planLabel}`,
   description: `
 会員名：${member.name}
 保護者名：${member.guardian_name || "なし"}
