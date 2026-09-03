@@ -10,6 +10,7 @@ const SQLiteStore = require('connect-sqlite3')(session);
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const bcrypt = require('bcrypt');
+const crypto = require("crypto");
 const { google } = require("googleapis");
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -3713,37 +3714,114 @@ app.post("/admin/records/:id/delete", requireAdmin, requireAdminCsrf, (req, res)
 
 });
 
+const GOOGLE_OAUTH_STATE_MAX_AGE_MS = 10 * 60 * 1000;
+
+function isMatchingGoogleOAuthState(receivedState, storedState) {
+  if (typeof receivedState !== 'string' || typeof storedState !== 'string') {
+    return false;
+  }
+
+  const receivedBuffer = Buffer.from(receivedState);
+  const storedBuffer = Buffer.from(storedState);
+
+  if (receivedBuffer.length !== storedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(receivedBuffer, storedBuffer);
+}
+
 app.get("/auth/google", requireAdmin, (req, res) => {
+  const state = crypto.randomBytes(32).toString("base64url");
+
+  req.session.googleOAuthState = {
+    value: state,
+    createdAt: Date.now()
+  };
+
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
     scope: [
       "https://www.googleapis.com/auth/calendar.events"
-    ]
+    ],
+    state
   });
 
-  res.redirect(authUrl);
+  req.session.save((err) => {
+    if (err) {
+      console.error("Google認証開始時のセッション保存に失敗しました");
+      return res.status(500).send("Google認証を開始できませんでした");
+    }
+
+    res.redirect(authUrl);
+  });
 });
 
 app.get("/auth/google/callback", requireAdmin, async (req, res) => {
-  try {
-    const { code } = req.query;
+  const receivedState = req.query.state;
+  const storedState = req.session.googleOAuthState;
 
-    if (!code) {
-      return res.send("認証コードが取得できませんでした");
+  if (
+    typeof receivedState !== 'string' ||
+    !storedState ||
+    typeof storedState.value !== 'string'
+  ) {
+    return res.status(403).send("Google認証リクエストを確認できませんでした");
+  }
+
+  const stateIsExpired =
+    typeof storedState.createdAt !== 'number' ||
+    Date.now() - storedState.createdAt > GOOGLE_OAUTH_STATE_MAX_AGE_MS;
+
+  if (stateIsExpired) {
+    delete req.session.googleOAuthState;
+
+    return req.session.save((err) => {
+      if (err) {
+        console.error("期限切れGoogle認証状態の削除に失敗しました");
+        return res.status(500).send("Google認証に失敗しました");
+      }
+
+      res.status(403).send("Google認証リクエストの有効期限が切れています");
+    });
+  }
+
+  if (!isMatchingGoogleOAuthState(receivedState, storedState.value)) {
+    return res.status(403).send("Google認証リクエストを確認できませんでした");
+  }
+
+  delete req.session.googleOAuthState;
+
+  req.session.save(async (saveErr) => {
+    if (saveErr) {
+      console.error("Google認証状態の消費に失敗しました");
+      return res.status(500).send("Google認証に失敗しました");
     }
 
-    const { tokens } = await oauth2Client.getToken(code);
+    if (req.query.error) {
+      return res.status(400).send("Google認証がキャンセルされたか、認証に失敗しました");
+    }
 
-    oauth2Client.setCredentials(tokens);
+    const { code } = req.query;
 
-    console.log("Google認証成功");
+    if (typeof code !== 'string' || !code) {
+      return res.status(400).send("認証コードが取得できませんでした");
+    }
 
-    res.send("Googleカレンダーとの連携に成功しました。");
-  } catch (error) {
-    console.error("Google認証エラー:", error);
-    res.status(500).send("Google認証に失敗しました");
-  }
+    try {
+      const { tokens } = await oauth2Client.getToken(code);
+
+      oauth2Client.setCredentials(tokens);
+
+      console.log("Google認証成功");
+
+      res.send("Googleカレンダーとの連携に成功しました。");
+    } catch (error) {
+      console.error("Google認証に失敗しました");
+      res.status(500).send("Google認証に失敗しました");
+    }
+  });
 });
 
 
