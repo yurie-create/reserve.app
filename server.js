@@ -2045,12 +2045,24 @@ addReservationToGoogleCalendar({
     });
   });
 
-  app.get('/logout', (req, res) => {
+  app.post('/logout', requireMember, requireMemberCsrf, (req, res) => {
+    delete req.session.memberId;
+
+    if (req.session.isAdmin === true) {
+      return req.session.save((err) => {
+        if (err) {
+          return res.status(500).send('ログアウトに失敗しました');
+        }
+
+        res.redirect('/');
+      });
+    }
+
     req.session.destroy((err) => {
       if (err) {
         return res.status(500).send('ログアウトに失敗しました');
       }
-  
+
       res.redirect('/');
     });
   });
@@ -2555,8 +2567,24 @@ addReservationToGoogleCalendar({
     res.redirect('/admin/login?error=1');
   });
 
-  app.get('/admin/logout', (req, res) => {
-    req.session.destroy(() => {
+  app.post('/admin/logout', requireAdmin, requireAdminCsrf, (req, res) => {
+    delete req.session.isAdmin;
+
+    if (req.session.memberId) {
+      return req.session.save((err) => {
+        if (err) {
+          return res.status(500).send('ログアウトに失敗しました');
+        }
+
+        res.redirect('/admin/login');
+      });
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).send('ログアウトに失敗しました');
+      }
+
       res.redirect('/admin/login');
     });
   });

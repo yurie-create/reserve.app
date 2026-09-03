@@ -269,7 +269,8 @@
   flex-wrap: wrap;
 }
 
-.header-links a {
+.header-links a,
+.header-links button {
   display: inline-block;
   padding: 6px 10px;
   border-radius: 999px;
@@ -279,10 +280,16 @@
   text-decoration: none;
   color: #111;
   font-weight: 600;
+  cursor: pointer;
 }
 
-.header-links a:hover {
+.header-links a:hover,
+.header-links button:hover {
   background: #eaeaea;
+}
+
+.header-links form {
+  margin: 0;
 }
 
 .tabs {
@@ -353,7 +360,10 @@
           <p>こんにちは、<strong><%= member.name %></strong>さん</p>
           <div class="header-links">
             <a href="/mypage">会員情報</a>
-            <a href="/logout">ログアウト</a>
+            <form action="/logout" method="POST">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="submit">ログアウト</button>
+            </form>
           </div>
         </div>
       </header>

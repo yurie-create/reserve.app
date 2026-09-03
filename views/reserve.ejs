@@ -19,7 +19,10 @@
         <p>こんにちは、<strong><%= member.name %></strong>さん</p>
         <div class="header-links">
           <a href="/mypage">会員情報</a>
-          <a href="/logout">ログアウト</a>
+          <form action="/logout" method="POST" style="margin:0;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" style="display:inline-block;padding:6px 10px;border-radius:999px;background:#f3f3f3;border:1px solid #ddd;font-size:12px;color:#111;font-weight:600;cursor:pointer;">ログアウト</button>
+          </form>
         </div>
       </div>
     <% } else { %>
