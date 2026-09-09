@@ -2535,6 +2535,11 @@ addReservationToGoogleCalendar({
 
   app.get('/admin/debug-client-ip', requireAdmin, (req, res) => {
     const ipVersion = net.isIP(req.ip || '');
+    const clientIpFingerprint = crypto
+      .createHash('sha256')
+      .update(req.ip || '')
+      .digest('hex')
+      .slice(0, 8);
     const forwardedFor = req.get('x-forwarded-for');
     const forwardedForEntryCount = forwardedFor
       ? forwardedFor.split(',').filter(entry => entry.trim()).length
@@ -2542,6 +2547,7 @@ addReservationToGoogleCalendar({
 
     res.json({
       addressType: ipVersion === 4 ? 'IPv4' : ipVersion === 6 ? 'IPv6' : 'その他',
+      clientIpFingerprint,
       trustedProxyAddressCount: Array.isArray(req.ips) ? req.ips.length : 0,
       socketAddressMatchesClientAddress: req.socket.remoteAddress === req.ip,
       xForwardedForPresent: Boolean(forwardedFor),
