@@ -2735,21 +2735,82 @@ addReservationToGoogleCalendar({
     if (!req.session.memberId) {
       return res.redirect('/members/login');
     }
-  
-    const sql = `
-      SELECT *
+
+    const nowParts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric'
+      }).formatToParts(new Date())
+        .filter(part => part.type !== 'literal')
+        .map(part => [part.type, Number(part.value)])
+    );
+    const historyStartDate = new Date(Date.UTC(nowParts.year, nowParts.month - 6, 1));
+    const historyStart = [
+      historyStartDate.getUTCFullYear(),
+      String(historyStartDate.getUTCMonth() + 1).padStart(2, '0'),
+      String(historyStartDate.getUTCDate()).padStart(2, '0')
+    ].join('-');
+    const historyEnd = [
+      nowParts.year,
+      String(nowParts.month).padStart(2, '0'),
+      String(nowParts.day).padStart(2, '0')
+    ].join('-');
+
+    const absencesSql = `
+      SELECT absence_date, note, used
       FROM absences
       WHERE member_id = ?
+        AND absence_date >= ?
+        AND absence_date <= ?
       ORDER BY absence_date DESC
     `;
-  
-    db.all(sql, [req.session.memberId], (err, absences) => {
+
+    const reschedulesSql = `
+      SELECT date, time, plan, status
+      FROM reservations
+      WHERE member_id = ?
+        AND plan IN ('elementary_reschedule', 'junior_reschedule')
+        AND date >= ?
+        AND date <= ?
+      ORDER BY date DESC, time DESC
+    `;
+
+    const availableCountSql = `
+      SELECT COUNT(*) AS count
+      FROM absences
+      WHERE member_id = ?
+        AND used = 0
+    `;
+
+    const historyParams = [req.session.memberId, historyStart, historyEnd];
+
+    db.all(absencesSql, historyParams, (err, absences) => {
       if (err) {
         console.error(err);
         return res.status(500).send('欠席履歴の取得に失敗しました');
       }
-  
-      res.render('mypage-absences', { absences });
+
+      db.all(reschedulesSql, historyParams, (reschedulesErr, reschedules) => {
+        if (reschedulesErr) {
+          console.error(reschedulesErr);
+          return res.status(500).send('振替予約履歴の取得に失敗しました');
+        }
+
+        db.get(availableCountSql, [req.session.memberId], (countErr, countRow) => {
+          if (countErr) {
+            console.error(countErr);
+            return res.status(500).send('振替可能数の取得に失敗しました');
+          }
+
+          res.render('mypage-absences', {
+            absences,
+            reschedules,
+            availableCount: countRow ? countRow.count : 0
+          });
+        });
+      });
     });
   });
 
@@ -2757,23 +2818,8 @@ addReservationToGoogleCalendar({
     if (!req.session.memberId) {
       return res.redirect('/members/login');
     }
-  
-    const sql = `
-      SELECT *
-      FROM reservations
-      WHERE member_id = ?
-        AND (plan = 'elementary_reschedule' OR plan = 'junior_reschedule')
-      ORDER BY date DESC, time DESC
-    `;
-  
-    db.all(sql, [req.session.memberId], (err, reschedules) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send('振替予約履歴の取得に失敗しました');
-      }
-  
-      res.render('mypage-reschedules', { reschedules });
-    });
+
+    return res.redirect('/mypage/absences');
   });
 
   app.get('/admin/members', requireAdmin,(req, res) => {
