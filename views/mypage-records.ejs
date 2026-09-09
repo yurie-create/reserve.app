@@ -592,10 +592,16 @@ button.record-action-button {
     const dateStr = toDateStr(date);
     return closedDates.some(item => item.date === dateStr);
   }
+
+  function isAbsenceDate(date, absences = []) {
+    const dateStr = toDateStr(date);
+    return absences.some(item => item.absence_date === dateStr);
+  }
   
   function getNextWeekdayDate(
   targetDay,
   closedDates = [],
+  absences = [],
   baseDate = new Date(),
   includeToday = true
 ) {
@@ -610,7 +616,10 @@ button.record-action-button {
 
     result.setDate(result.getDate() + diff);
 
-    if (!isClosedDate(result, closedDates)) break;
+    if (
+      !isClosedDate(result, closedDates) &&
+      !isAbsenceDate(result, absences)
+    ) break;
 
     result.setDate(result.getDate() + 1);
     includeToday = true;
@@ -637,7 +646,7 @@ button.record-action-button {
     return course;
   }
   
-  function getRegularSchedules(monthlyEntry, closedDates = [], count = 2) {
+  function getRegularSchedules(monthlyEntry, closedDates = [], absences = [], count = 2) {
     if (!monthlyEntry) return [];
   
     const course = monthlyEntry.course;
@@ -652,7 +661,7 @@ button.record-action-button {
   
     while (schedules.length < count) {
       const candidates = targetDays.map(day =>
-  getNextWeekdayDate(day, closedDates, baseDate, schedules.length === 0)
+  getNextWeekdayDate(day, closedDates, absences, baseDate, schedules.length === 0)
 );
       const nextDate = candidates.sort((a, b) => a - b)[0];
   
@@ -727,7 +736,7 @@ const reservationSchedules = (upcomingReservations || []).map(r => ({
   type: "reservation"
 }));
 
-const regularSchedules = getRegularSchedules(monthlyEntry, closedDates, 3);
+const regularSchedules = getRegularSchedules(monthlyEntry, closedDates, absences, 3);
 
 const allSchedules = [...reservationSchedules, ...regularSchedules]
   .sort((a, b) => new Date(a.date) - new Date(b.date));

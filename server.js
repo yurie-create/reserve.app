@@ -2554,125 +2554,179 @@ addReservationToGoogleCalendar({
     if (!req.session.memberId) {
       return res.redirect('/members/login');
     }
-  
+
+    const memberId = req.session.memberId;
     const { absence_date, note } = req.body;
-  
+
     if (!absence_date) {
       return res.send('日付を選択してください');
     }
-  
-    // まず月謝会員情報を取得
+
     const monthlySql = `
       SELECT course
       FROM monthly_entries
       WHERE member_id = ?
     `;
-  
-    db.get(monthlySql, [req.session.memberId], (err, monthlyEntry) => {
-      if (err) {
-        console.error(err);
-        return res.send('月謝会員情報の取得に失敗しました');
+
+    const checkSql = `
+      SELECT id
+      FROM absences
+      WHERE member_id = ? AND absence_date = ?
+    `;
+
+    const insertSql = `
+      INSERT INTO absences (
+        member_id,
+        absence_date,
+        note
+      ) VALUES (?, ?, ?)
+    `;
+
+    function isValidAbsenceDate(course, absenceDate) {
+      if (typeof absenceDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(absenceDate)) {
+        return false;
       }
-  
-      if (!monthlyEntry) {
-        return res.send('月謝会員のみ欠席登録ができます');
+
+      const date = new Date(`${absenceDate}T00:00:00Z`);
+      if (
+        Number.isNaN(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== absenceDate
+      ) {
+        return false;
       }
-  
-      const course = monthlyEntry.course;
-  
-      // 欠席日の曜日を取得（0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土）
-      const day = new Date(absence_date).getDay();
-  
+
+      const day = date.getUTCDay();
       let isValidDay = false;
-  
+
       if (course === 'elementary_wed' || course === 'junior_wed') {
-        isValidDay = (day === 3); // 水曜
+        isValidDay = day === 3;
       }
-  
+
       if (course === 'elementary_fri' || course === 'junior_fri') {
-        isValidDay = (day === 5); // 金曜
+        isValidDay = day === 5;
       }
-  
+
       if (course === 'elementary_twice' || course === 'junior_twice') {
-        isValidDay = (day === 3 || day === 5); // 水曜 or 金曜
+        isValidDay = day === 3 || day === 5;
       }
-  
-      if (!isValidDay) {
-        return res.send('登録されているコースの曜日のみ欠席登録できます');
-      }
-  
-      // 同じ日にすでに欠席登録していないかチェック
-      const checkSql = `
-        SELECT id
-        FROM absences
-        WHERE member_id = ? AND absence_date = ?
+
+      return isValidDay;
+    }
+
+    function sendAbsenceNotification(course) {
+      const memberSql = `
+        SELECT name, guardian_name, email, phone, grade
+        FROM members
+        WHERE id = ?
       `;
-  
-      db.get(checkSql, [req.session.memberId, absence_date], (err, existing) => {
+
+      db.get(memberSql, [memberId], (err, member) => {
         if (err) {
           console.error(err);
-          return res.send('欠席確認に失敗しました');
+          return res.redirect('/reschedule?done=absence');
         }
-  
-        if (existing) {
-          return res.send('この日はすでに欠席登録されています');
+
+        resend.emails.send({
+          from: "SIEG SPORTS <info@sieg-sports.com>",
+          to: "yurie6312@gmail.com",
+          subject: "【SiegSports】欠席登録がありました",
+          html: `
+            <h2>欠席登録がありました</h2>
+
+            <p><strong>欠席日</strong>：${absence_date}</p>
+            <p><strong>会員名</strong>：${member?.name || "未取得"}</p>
+            <p><strong>保護者名</strong>：${member?.guardian_name || "未取得"}</p>
+            <p><strong>学年</strong>：${member?.grade || "未取得"}</p>
+            <p><strong>メール</strong>：${member?.email || "未取得"}</p>
+            <p><strong>電話</strong>：${member?.phone || "未取得"}</p>
+            <p><strong>コース</strong>：${getCourseLabel(course)}</p>
+            <p><strong>備考</strong>：${note || "なし"}</p>
+          `
+        }).then((result) => {
+          console.log("欠席通知メール送信成功:", result);
+        }).catch((error) => {
+          console.error("欠席通知メール送信失敗:", error);
+        });
+
+        res.redirect('/reschedule?done=absence');
+      });
+    }
+
+    const transactionDb = db.createConnection();
+
+    function closeTransactionConnection(callback) {
+      transactionDb.close((closeErr) => {
+        if (closeErr) {
+          console.error('欠席登録用DB接続のクローズに失敗しました:', closeErr);
         }
-  
-        const insertSql = `
-          INSERT INTO absences (
-            member_id,
-            absence_date,
-            note
-          ) VALUES (?, ?, ?)
-        `;
-  
-        db.run(
-          insertSql,
-          [req.session.memberId, absence_date, note],
-          function (err) {
-            if (err) {
-              console.error(err);
-              return res.send('欠席登録に失敗しました');
-            }
-        
-            const memberSql = `
-              SELECT name, guardian_name, email, phone, grade
-              FROM members
-              WHERE id = ?
-            `;
-        
-            db.get(memberSql, [req.session.memberId], (err, member) => {
-              if (err) {
-                console.error(err);
-                return res.redirect('/reschedule?done=absence');
-              }
-        
-              resend.emails.send({
-                from: "SIEG SPORTS <info@sieg-sports.com>",
-                to: "yurie6312@gmail.com",
-                subject: "【SiegSports】欠席登録がありました",
-                html: `
-                  <h2>欠席登録がありました</h2>
-        
-                  <p><strong>欠席日</strong>：${absence_date}</p>
-                  <p><strong>会員名</strong>：${member?.name || "未取得"}</p>
-                  <p><strong>保護者名</strong>：${member?.guardian_name || "未取得"}</p>
-                  <p><strong>学年</strong>：${member?.grade || "未取得"}</p>
-                  <p><strong>メール</strong>：${member?.email || "未取得"}</p>
-                  <p><strong>電話</strong>：${member?.phone || "未取得"}</p>
-                  <p><strong>コース</strong>：${getCourseLabel(course)}</p>
-                  <p><strong>備考</strong>：${note || "なし"}</p>
-                `
-              }).then((result) => {
-                console.log("欠席通知メール送信成功:", result);
-              }).catch((error) => {
-                console.error("欠席通知メール送信失敗:", error);
-              });
-        
-              res.redirect('/reschedule?done=absence');
-            });
+        callback();
+      });
+    }
+
+    function rollback(message, error) {
+      if (error) {
+        console.error('欠席登録トランザクションエラー:', error);
+      }
+
+      transactionDb.run('ROLLBACK', (rollbackErr) => {
+        if (rollbackErr) {
+          console.error('欠席登録のロールバックに失敗しました:', rollbackErr);
+        }
+
+        closeTransactionConnection(() => {
+          res.send(message);
+        });
+      });
+    }
+
+    transactionDb.run('BEGIN IMMEDIATE', (beginErr) => {
+      if (beginErr) {
+        console.error('欠席登録トランザクション開始エラー:', beginErr);
+        return closeTransactionConnection(() => {
+          res.status(500).send('欠席登録に失敗しました');
+        });
+      }
+
+      transactionDb.get(monthlySql, [memberId], (monthlyErr, monthlyEntry) => {
+        if (monthlyErr) {
+          return rollback('月謝会員情報の取得に失敗しました', monthlyErr);
+        }
+
+        if (!monthlyEntry) {
+          return rollback('月謝会員のみ欠席登録ができます');
+        }
+
+        const course = monthlyEntry.course;
+
+        if (!isValidAbsenceDate(course, absence_date)) {
+          return rollback('登録されているコースの曜日のみ欠席登録できます');
+        }
+
+        transactionDb.get(checkSql, [memberId, absence_date], (checkErr, existing) => {
+          if (checkErr) {
+            return rollback('欠席確認に失敗しました', checkErr);
           }
-        );
+
+          if (existing) {
+            return rollback('この日はすでに欠席登録されています');
+          }
+
+          transactionDb.run(insertSql, [memberId, absence_date, note], function (insertErr) {
+            if (insertErr) {
+              return rollback('欠席登録に失敗しました', insertErr);
+            }
+
+            transactionDb.run('COMMIT', (commitErr) => {
+              if (commitErr) {
+                return rollback('欠席登録に失敗しました', commitErr);
+              }
+
+              closeTransactionConnection(() => {
+                sendAbsenceNotification(course);
+              });
+            });
+          });
+        });
       });
     });
   });
@@ -3455,15 +3509,17 @@ db.all(closedDatesSql, [], (err, closedDates) => {
     return res.send("休講日の取得中にエラーが発生しました");
   }
 
-  const closedDatesSql = `
-  SELECT date
-  FROM closed_lesson_dates
+  const absenceDatesSql = `
+  SELECT absence_date
+  FROM absences
+  WHERE member_id = ?
+    AND absence_date >= ?
 `;
 
-db.all(closedDatesSql, [], (err, closedDates) => {
+db.all(absenceDatesSql, [memberId, today], (err, absences) => {
   if (err) {
     console.error(err);
-    return res.send("休講日の取得中にエラーが発生しました");
+    return res.send("欠席日の取得中にエラーが発生しました");
   }
 
   db.all(`
@@ -3489,6 +3545,7 @@ db.all(closedDatesSql, [], (err, closedDates) => {
     upcomingReservations,
     monthlyEntry,
     closedDates,
+    absences,
     notices,
     deleted: req.query.deleted
   });
