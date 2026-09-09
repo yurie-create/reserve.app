@@ -491,7 +491,7 @@
   </main>
 
   <script>
-    const allRecords = <%- JSON.stringify(records || []) %>;
+    const allRecords = <%- safeJsonForHtml(records || []) %>;
 
     let recordChart = null;
     let currentChartEventName = null;

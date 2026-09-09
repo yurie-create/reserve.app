@@ -417,7 +417,8 @@ let currentMonth = now.getMonth() + 1;
 
     renderCalendar();
 
-    const allSlots = <%- JSON.stringify(slots) %>;
+    const allSlots = <%- safeJsonForHtml(slots) %>;
+    const adminCsrfToken = <%- safeJsonForHtml(csrfToken) %>;
 
 
     let activeDate = null;
@@ -457,7 +458,10 @@ function renderSlotCalendar() {
       <div class="calendar-day" onclick="showSlotsByDate('${date}', this)">
         <div class="day-number">${day}</div>
         <div class="dot-area">
-          ${daySlots.map(slot => `<span class="slot-dot ${slot.menu_type}"></span>`).join("")}
+          ${daySlots.map(slot => {
+            const safeMenuType = String(slot.menu_type || "").replace(/[^a-zA-Z0-9_-]/g, "");
+            return `<span class="slot-dot ${safeMenuType}"></span>`;
+          }).join("")}
         </div>
       </div>
     `;
@@ -497,49 +501,89 @@ function changeSlotCalendarMonth(diff) {
   const box = document.getElementById("selectedSlotsContent");
 
   if (selected.length === 0) {
-    box.innerHTML = `<p>${date} のスロットはありません</p>`;
+    const emptyMessage = document.createElement("p");
+    emptyMessage.textContent = `${date} のスロットはありません`;
+    box.replaceChildren(emptyMessage);
     return;
   }
 
+  const table = document.createElement("table");
+  table.className = "slot-table";
 
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  ["メニュー", "時間", "定員", "予約", "操作"].forEach(label => {
+    const th = document.createElement("th");
+    th.textContent = label;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
 
-  box.innerHTML = `
-    <table class="slot-table">
-      <thead>
-        <tr>
-          <th>メニュー</th>
-          <th>時間</th>
-          <th>定員</th>
-          <th>予約</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${selected.map(slot => `
-          <tr>
-            <td>${slot.menu_name}</td>
-            <td>${slot.start_time}-${slot.end_time}</td>
-            <td>${slot.capacity}</td>
-            <td>
-  ${slot.reserved_count > 0
-    ? `<a href="/admin/slot-reservations/${slot.id}" class="reservation-link">
-  予約${slot.reserved_count}件
-</a>`
-    : `0`
-  }
-</td>
-            <td>
-    <form action="/admin/delete-slot" method="POST" onsubmit="return confirm('このスロットを削除しますか？')">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <input type="hidden" name="id" value="${slot.id}">
-      <button type="submit" class="delete-button">削除</button>
-    </form>
-  </td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
+  const tbody = document.createElement("tbody");
+  selected.forEach(slot => {
+    const row = document.createElement("tr");
+    const menuCell = document.createElement("td");
+    menuCell.textContent = String(slot.menu_name || "");
+
+    const timeCell = document.createElement("td");
+    timeCell.textContent = `${slot.start_time || ""}-${slot.end_time || ""}`;
+
+    const capacityCell = document.createElement("td");
+    capacityCell.textContent = String(slot.capacity ?? "");
+
+    const reservationCell = document.createElement("td");
+    const slotId = Number(slot.id);
+    const reservedCount = Number(slot.reserved_count);
+    if (
+      reservedCount > 0 &&
+      Number.isSafeInteger(slotId) &&
+      slotId > 0
+    ) {
+      const link = document.createElement("a");
+      link.className = "reservation-link";
+      link.href = `/admin/slot-reservations/${slotId}`;
+      link.textContent = `予約${reservedCount}件`;
+      reservationCell.appendChild(link);
+    } else {
+      reservationCell.textContent = "0";
+    }
+
+    const actionCell = document.createElement("td");
+    if (Number.isSafeInteger(slotId) && slotId > 0) {
+      const form = document.createElement("form");
+      form.action = "/admin/delete-slot";
+      form.method = "POST";
+      form.addEventListener("submit", event => {
+        if (!confirm("このスロットを削除しますか？")) {
+          event.preventDefault();
+        }
+      });
+
+      const csrfInput = document.createElement("input");
+      csrfInput.type = "hidden";
+      csrfInput.name = "_csrf";
+      csrfInput.value = adminCsrfToken;
+
+      const idInput = document.createElement("input");
+      idInput.type = "hidden";
+      idInput.name = "id";
+      idInput.value = String(slotId);
+
+      const deleteButton = document.createElement("button");
+      deleteButton.type = "submit";
+      deleteButton.className = "delete-button";
+      deleteButton.textContent = "削除";
+
+      form.append(csrfInput, idInput, deleteButton);
+      actionCell.appendChild(form);
+    }
+
+    row.append(menuCell, timeCell, capacityCell, reservationCell, actionCell);
+    tbody.appendChild(row);
+  });
+
+  table.append(thead, tbody);
+  box.replaceChildren(table);
 }
 
 renderSlotCalendar();

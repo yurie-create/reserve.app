@@ -216,20 +216,44 @@ document.getElementById('selectedDateText').textContent = `選択中：${year}�
 
   selectedTime = "";
   const targetSlots = slots.filter(slot => slot.date === date);
-  const html = targetSlots.map(slot => {
-  const remaining = slot.capacity - slot.reserved_count;
+  const timeButtons = targetSlots.map(slot => {
+    const remaining = Number(slot.capacity) - Number(slot.reserved_count);
+    const time = `${slot.start_time} - ${slot.end_time}`;
+    const button = document.createElement('button');
+    button.className = 'time-card';
+    button.type = 'button';
 
-  if (remaining <= 0) {
-    return `<button class="time-card" type="button" disabled><div><p class="time-text">${slot.start_time} - ${slot.end_time}</p></div><div class="time-right"><span class="remaining">満席</span></div></button>`;
-  }
+    const timeArea = document.createElement('div');
+    const timeText = document.createElement('p');
+    timeText.className = 'time-text';
+    timeText.textContent = time;
+    timeArea.appendChild(timeText);
 
-  return `<button class="time-card" type="button" onclick="selectTime(this, '${slot.start_time} - ${slot.end_time}', ${slot.id})"><div><p class="time-text">${slot.start_time} - ${slot.end_time}</p></div><div class="time-right"><span class="remaining">残り${remaining}</span><span class="radio"></span></div></button>`;
-}).join("");
-document.getElementById("timeButtons").innerHTML = html;
+    const right = document.createElement('div');
+    right.className = 'time-right';
+    const remainingText = document.createElement('span');
+    remainingText.className = 'remaining';
+
+    if (remaining <= 0) {
+      button.disabled = true;
+      remainingText.textContent = '満席';
+    } else {
+      remainingText.textContent = `残り${remaining}`;
+      const radio = document.createElement('span');
+      radio.className = 'radio';
+      right.appendChild(radio);
+      button.addEventListener('click', () => selectTime(button, time, slot.id));
+    }
+
+    right.prepend(remainingText);
+    button.append(timeArea, right);
+    return button;
+  });
+  document.getElementById("timeButtons").replaceChildren(...timeButtons);
 document.getElementById('timeList').style.display = 'block';
 }
 
-const slots = <%- JSON.stringify(slots) %>;
+const slots = <%- safeJsonForHtml(slots) %>;
 renderCalendar();
       </script>
    

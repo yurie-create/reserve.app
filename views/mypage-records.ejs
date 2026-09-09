@@ -1153,7 +1153,7 @@ const upcomingSchedules = allSchedules.slice(1, 3);
 
  </div>
   <script>
-    const allRecords = <%- JSON.stringify(records || []) %>;
+    const allRecords = <%- safeJsonForHtml(records || []) %>;
   
     let recordChart = null;
     let currentChartEventName = null;

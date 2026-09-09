@@ -115,7 +115,7 @@ function formatPlan(plan) {
   if (plan === 'junior_reschedule') return '中学生振替';
   return plan;
 }
-    const reservations = <%- JSON.stringify(reservations) %>;
+    const reservations = <%- safeJsonForHtml(reservations) %>;
     console.log(reservations);
     let selectedReservationDate = '';
     const now = new Date();
@@ -185,20 +185,32 @@ const count = reservations.filter(r => String(r.date).includes(dateStr)).length;
 
   document.getElementById('reservationDetailTitle').textContent = `${date} の予約一覧`;
 
-  const html = dayReservations.map(r => {
-  return `
-    <div class="summary-item">
-      <span class="label">${r.time}</span>
-      <span class="value">
-        <a href="/admin/reservations/${r.id}" class="reservation-link">
-          ${r.child_name}（${r.parent_name}） / ${formatPlan(r.plan)}
-        </a>
-      </span>
-    </div>
-  `;
-}).join('');
+  const reservationDetailList = document.getElementById('reservationDetailList');
+  const reservationItems = dayReservations.map(r => {
+    const item = document.createElement('div');
+    item.className = 'summary-item';
 
-  document.getElementById('reservationDetailList').innerHTML = html;
+    const timeLabel = document.createElement('span');
+    timeLabel.className = 'label';
+    timeLabel.textContent = String(r.time || '');
+
+    const value = document.createElement('span');
+    value.className = 'value';
+
+    const link = document.createElement('a');
+    link.className = 'reservation-link';
+    const reservationId = Number(r.id);
+    if (Number.isSafeInteger(reservationId) && reservationId > 0) {
+      link.href = `/admin/reservations/${reservationId}`;
+    }
+    link.textContent = `${r.child_name || ''}（${r.parent_name || ''}） / ${formatPlan(r.plan)}`;
+
+    value.appendChild(link);
+    item.append(timeLabel, value);
+    return item;
+  });
+
+  reservationDetailList.replaceChildren(...reservationItems);
   document.getElementById('reservationDetailBox').style.display = 'block';
 }
   

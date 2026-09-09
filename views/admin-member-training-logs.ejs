@@ -190,7 +190,7 @@
   </main>
 
   <script>
-    const logs = <%- JSON.stringify(logs || []) %>;
+    const logs = <%- safeJsonForHtml(logs || []) %>;
 
     document.addEventListener("DOMContentLoaded", function () {
       const calendarEl = document.getElementById("adminTrainingCalendar");
@@ -226,42 +226,51 @@
           const subtitle = arg.event.extendedProps.subtitle || "";
           const body = arg.event.extendedProps.body || "";
 
+          const createTextElement = (tagName, className, text) => {
+            const element = document.createElement(tagName);
+            if (className) element.className = className;
+            element.textContent = text;
+            return element;
+          };
+
           if (viewType === "dayGridWeek") {
-            return {
-              html: `
-                <div style="padding:2px 4px;">
-                  <div style="font-weight:600; font-size:9px; line-height:1.2; white-space:normal;">
-  ${arg.event.title}
-</div>
-                  ${
-                    subtitle
-                      ? `<div style="font-size:10px; opacity:0.8; line-height:1.2;">${subtitle}</div>`
-                      : ""
-                  }
-                </div>
-              `
-            };
+            const wrapper = document.createElement("div");
+            wrapper.style.padding = "2px 4px";
+
+            const title = createTextElement("div", "", arg.event.title);
+            title.style.cssText = "font-weight:600; font-size:9px; line-height:1.2; white-space:normal;";
+            wrapper.appendChild(title);
+
+            if (subtitle) {
+              const subtitleElement = createTextElement("div", "", subtitle);
+              subtitleElement.style.cssText = "font-size:10px; opacity:0.8; line-height:1.2;";
+              wrapper.appendChild(subtitleElement);
+            }
+
+            return { domNodes: [wrapper] };
           }
 
           if (viewType === "listDay") {
-            return {
-              html: `
-                <div class="list-day-log">
-                  <h3>${arg.event.title}</h3>
-                  ${subtitle ? `<p class="list-day-subtitle">${subtitle}</p>` : ""}
-                  ${body ? `<div class="list-day-body">${body.replace(/\n/g, "<br>")}</div>` : ""}
-                </div>
-              `
-            };
+            const wrapper = document.createElement("div");
+            wrapper.className = "list-day-log";
+            wrapper.appendChild(createTextElement("h3", "", arg.event.title));
+
+            if (subtitle) {
+              wrapper.appendChild(createTextElement("p", "list-day-subtitle", subtitle));
+            }
+
+            if (body) {
+              const bodyElement = createTextElement("div", "list-day-body", body);
+              bodyElement.style.whiteSpace = "pre-wrap";
+              wrapper.appendChild(bodyElement);
+            }
+
+            return { domNodes: [wrapper] };
           }
 
-          return {
-            html: `
-  <div style="font-size:9px; line-height:1.2; white-space:normal;">
-    ${arg.event.title}
-  </div>
-`
-          };
+          const title = createTextElement("div", "", arg.event.title);
+          title.style.cssText = "font-size:9px; line-height:1.2; white-space:normal;";
+          return { domNodes: [title] };
         },
         dateClick: function(info) {
   calendar.changeView("listDay", info.dateStr);
