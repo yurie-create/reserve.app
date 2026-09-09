@@ -20,6 +20,7 @@
     "dotenv": "^17.4.2",
     "ejs": "^5.0.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
     "express-session": "^1.19.0",
     "googleapis": "^174.0.1",
     "resend": "^6.25.0",

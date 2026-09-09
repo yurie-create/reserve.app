@@ -4,6 +4,7 @@ const express = require("express");
 const app = express();
 const db = require("./db");
 const session = require('express-session');
+const { rateLimit } = require('express-rate-limit');
 const { csrfSync } = require('csrf-sync');
 require('dotenv').config();
 const SQLiteStore = require('connect-sqlite3')(session);
@@ -11,7 +12,6 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const bcrypt = require('bcrypt');
 const crypto = require("crypto");
-const net = require('node:net');
 const { google } = require("googleapis");
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -77,6 +77,41 @@ app.use(express.urlencoded({ extended: true }));
 if (isProduction) {
   app.set('trust proxy', 1);
 }
+
+const rateLimitMessage = 'アクセスが集中しています。しばらく待ってからもう一度お試しください。';
+const commonRateLimitOptions = {
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: rateLimitMessage
+};
+
+const memberLoginRateLimiter = rateLimit({
+  ...commonRateLimitOptions,
+  windowMs: 15 * 60 * 1000,
+  limit: 15,
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (_req, res) => res.locals.loginSucceeded === true
+});
+
+const adminLoginRateLimiter = rateLimit({
+  ...commonRateLimitOptions,
+  windowMs: 15 * 60 * 1000,
+  limit: 8,
+  skipSuccessfulRequests: true,
+  requestWasSuccessful: (_req, res) => res.locals.loginSucceeded === true
+});
+
+const memberRegistrationRateLimiter = rateLimit({
+  ...commonRateLimitOptions,
+  windowMs: 60 * 60 * 1000,
+  limit: 5
+});
+
+const guestBookingRateLimiter = rateLimit({
+  ...commonRateLimitOptions,
+  windowMs: 60 * 60 * 1000,
+  limit: 10
+});
 
 app.use(
   session({
@@ -619,7 +654,7 @@ app.get('/reschedule', (req, res) => {
     });
   });
 
-  app.post("/complete", (req, res) => {
+  app.post("/complete", guestBookingRateLimiter, (req, res) => {
     const {
       plan,
       date,
@@ -1411,7 +1446,7 @@ res.render('admin-reservation-detail', {
   });
 
 
-  app.post('/members', (req, res) => {
+  app.post('/members', memberRegistrationRateLimiter, (req, res) => {
     const {
       name,
       kana,
@@ -1524,7 +1559,7 @@ res.render('admin-reservation-detail', {
   });
 
 
-  app.post('/members/login', (req, res) => {
+  app.post('/members/login', memberLoginRateLimiter, (req, res) => {
     const { email, password } = req.body;
   
     const sql = `
@@ -1584,6 +1619,7 @@ res.render('admin-reservation-detail', {
               });
             }
 
+            res.locals.loginSucceeded = true;
             res.redirect(reservationReturnTo || next || '/mypage/records');
           });
         });
@@ -2533,28 +2569,6 @@ addReservationToGoogleCalendar({
     res.render('admin-top');
   });
 
-  app.get('/admin/debug-client-ip', requireAdmin, (req, res) => {
-    const ipVersion = net.isIP(req.ip || '');
-    const clientIpFingerprint = crypto
-      .createHash('sha256')
-      .update(req.ip || '')
-      .digest('hex')
-      .slice(0, 8);
-    const forwardedFor = req.get('x-forwarded-for');
-    const forwardedForEntryCount = forwardedFor
-      ? forwardedFor.split(',').filter(entry => entry.trim()).length
-      : 0;
-
-    res.json({
-      addressType: ipVersion === 4 ? 'IPv4' : ipVersion === 6 ? 'IPv6' : 'その他',
-      clientIpFingerprint,
-      trustedProxyAddressCount: Array.isArray(req.ips) ? req.ips.length : 0,
-      socketAddressMatchesClientAddress: req.socket.remoteAddress === req.ip,
-      xForwardedForPresent: Boolean(forwardedFor),
-      xForwardedForEntryCount: forwardedForEntryCount
-    });
-  });
-
   app.get('/admin/canceled-reservations', requireAdmin,(req, res) => {
     const sql = `
       SELECT *
@@ -2940,7 +2954,7 @@ addReservationToGoogleCalendar({
     res.render('admin-login', { error });
   });
   
-  app.post('/admin/login', (req, res) => {
+  app.post('/admin/login', adminLoginRateLimiter, (req, res) => {
     const { adminId, password } = req.body;
   
     if (
@@ -2969,6 +2983,7 @@ addReservationToGoogleCalendar({
             });
           }
 
+          res.locals.loginSucceeded = true;
           res.redirect('/admin');
         });
       });
