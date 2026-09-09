@@ -188,25 +188,35 @@ app.use((req, res, next) => {
   }
 });
 
-app.locals.formatPlan = (plan) => {
-  if (plan === 'trial') return '無料体験';
-  if (plan === 'personal60' || plan === 'lesson') return 'パーソナルレッスン 60分';
-  if (plan === 'personal30') return 'パーソナルレッスン 30分';
-  if (plan === 'reschedule') return '振替';
-  if (plan === 'elementary_reschedule') return '小学生振替';
-  if (plan === 'junior_reschedule') return '中学生振替';
-  return plan;
+const PLAN_LABELS = {
+  trial: '無料体験',
+  lesson: 'パーソナルレッスン 60分',
+  personal60: 'パーソナルレッスン 60分',
+  personal30: 'パーソナルレッスン 30分',
+  reschedule: '振替',
+  elementary_reschedule: '小学生振替',
+  junior_reschedule: '中学生振替'
 };
 
-app.locals.formatCourse = (course) => {
-  if (course === 'elementary_wed') return '小学生週1回（水曜日）';
-  if (course === 'elementary_fri') return '小学生週1回（金曜日）';
-  if (course === 'elementary_twice') return '小学生週2回';
-  if (course === 'junior_wed') return '中学生週1回（水曜日）';
-  if (course === 'junior_fri') return '中学生週1回（金曜日）';
-  if (course === 'junior_twice') return '中学生週2回';
-  return course;
+function getPlanLabel(plan) {
+  return PLAN_LABELS[plan] || plan;
+}
+
+const COURSE_LABELS = {
+  elementary_wed: '小学生週1回（水曜日）',
+  elementary_fri: '小学生週1回（金曜日）',
+  elementary_twice: '小学生週2回',
+  junior_wed: '中学生週1回（水曜日）',
+  junior_fri: '中学生週1回（金曜日）',
+  junior_twice: '中学生週2回'
 };
+
+function getCourseLabel(course) {
+  return COURSE_LABELS[course] || course;
+}
+
+app.locals.formatPlan = getPlanLabel;
+app.locals.formatCourse = getCourseLabel;
 
 function requireAdmin(req, res, next) {
   if (!req.session.isAdmin) {
@@ -397,13 +407,7 @@ app.get("/date-select", (req, res) => {
   const rawPlan = req.query.plan || "";
   console.log("plan:", rawPlan);
 
-  let planName = "未選択";
-  if (rawPlan === "trial") planName = "無料体験";
-  if (rawPlan === "lesson" || rawPlan === "personal60") planName = "パーソナルレッスン 60分";
-  if (rawPlan === "personal30") planName = "パーソナルレッスン 30分";
-  if (rawPlan === "reschedule") planName = "月極会員 振替";
-  if (rawPlan === "elementary_reschedule") planName = "小学生振替";
-  if (rawPlan === "junior_reschedule") planName = "中学生振替";
+  const planName = rawPlan ? getPlanLabel(rawPlan) : "未選択";
 
   function proceedDateSelect(memberCourse = null) {
     db.get("SELECT * FROM menus WHERE type = ?", [plan], (err, menu) => {
@@ -552,11 +556,7 @@ app.get('/reschedule', (req, res) => {
     const rawDate = req.query.date || ""; 
     const rawTime = req.query.time || "";
   
-    let planName = "未選択";
-    if (rawPlan === "trial") planName = "無料体験";
-    if (rawPlan === "personal60") planName = "パーソナルレッスン 60分";
-    if (rawPlan === "personal30") planName = "パーソナルレッスン 30分";
-    if (rawPlan === "reschedule") planName = "月極会員 振替";
+    const planName = rawPlan ? getPlanLabel(rawPlan) : "未選択";
   
     let dateName = "未選択";
     if (rawDate) {
@@ -583,13 +583,7 @@ app.get('/reschedule', (req, res) => {
   
     const dateName = req.query.date || "未選択";
   
-    let planName = "未選択";
-    if (rawPlan === "trial") planName = "無料体験";
-    if (rawPlan === "lesson" || rawPlan === "personal60") planName = "パーソナルレッスン 60分";
-    if (rawPlan === "personal30") planName = "パーソナルレッスン 30分";
-    if (rawPlan === "reschedule") planName = "月極会員 振替";
-    if (rawPlan === "elementary_reschedule") planName = "小学生振替";
-    if (rawPlan === "junior_reschedule") planName = "中学生振替";
+    const planName = rawPlan ? getPlanLabel(rawPlan) : "未選択";
   
     res.render("confirm", {
       plan: planName,
@@ -631,10 +625,7 @@ app.get('/reschedule', (req, res) => {
       return res.status(400).send("日付の形式が正しくありません");
     }
   
-    let planLabel = plan;
-    if (plan === "trial") planLabel = "無料体験";
-    if (plan === "personal60" || plan === "lesson") planLabel = "パーソナルレッスン 60分";
-    if (plan === "personal30") planLabel = "パーソナルレッスン 30分";
+    const planLabel = getPlanLabel(plan);
   
     const checkSql = `
       SELECT
@@ -1690,13 +1681,7 @@ res.render('admin-reservation-detail', {
             note || ''
           ];
   
-          let planLabel = plan;
-
-          if (plan === 'trial') planLabel = '無料体験';
-          if (plan === 'lesson') planLabel = 'パーソナルレッスン 60分';
-          if (plan === 'personal30') planLabel = 'パーソナルレッスン 30分';
-          if (plan === 'elementary_reschedule') planLabel = '小学生振替';
-          if (plan === 'junior_reschedule') planLabel = '中学生振替';
+          const planLabel = getPlanLabel(plan);
 
           function sendEmailsAndComplete(reservationId) {
 
@@ -2192,7 +2177,7 @@ addReservationToGoogleCalendar({
       <h2>予約がキャンセルされました</h2>
   
       <p><strong>予約ID</strong>：${reservation.id}</p>
-      <p><strong>プラン</strong>：${reservation.plan}</p>
+      <p><strong>プラン</strong>：${getPlanLabel(reservation.plan)}</p>
       <p><strong>日付</strong>：${reservation.date}</p>
       <p><strong>時間</strong>：${reservation.time}</p>
       <p><strong>お名前</strong>：${reservation.child_name}</p>
@@ -2537,7 +2522,7 @@ addReservationToGoogleCalendar({
                   <p><strong>学年</strong>：${member?.grade || "未取得"}</p>
                   <p><strong>メール</strong>：${member?.email || "未取得"}</p>
                   <p><strong>電話</strong>：${member?.phone || "未取得"}</p>
-                  <p><strong>コース</strong>：${course}</p>
+                  <p><strong>コース</strong>：${getCourseLabel(course)}</p>
                   <p><strong>備考</strong>：${note || "なし"}</p>
                 `
               }).then((result) => {

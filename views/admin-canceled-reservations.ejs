@@ -117,19 +117,7 @@
             <% reservations.forEach(reservation => { %>
               <tr>
                 <td><%= reservation.id %></td>
-                <td>
-                  <% if (reservation.plan === 'trial') { %>
-                    無料体験
-                  <% } else if (reservation.plan === 'personal60') { %>
-                    パーソナルレッスン60分
-                  <% } else if (reservation.plan === 'personal30') { %>
-                    パーソナルレッスン30分
-                  <% } else if (reservation.plan === 'reschedule') { %>
-                    月極会員 振替
-                  <% } else { %>
-                    <%= reservation.plan %>
-                  <% } %>
-                </td>
+                <td><%= formatPlan(reservation.plan) %></td>
                 <td><%= reservation.date || '' %></td>
                 <td><%= reservation.time || '' %></td>
                 <td><%= reservation.parent_name || '' %></td>
