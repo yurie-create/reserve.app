@@ -625,19 +625,28 @@ app.get('/reschedule', (req, res) => {
       return res.status(400).send("日付の形式が正しくありません");
     }
   
-    const planLabel = getPlanLabel(plan);
-  
     const checkSql = `
       SELECT
+        slots.id AS slot_id,
+        slots.menu_id,
+        slots.date AS slot_date,
+        slots.start_time,
+        slots.end_time,
         slots.capacity,
+        slots.is_active AS slot_is_active,
+        menus.type AS menu_type,
+        menus.is_active AS menu_is_active,
         COUNT(reservations.id) AS reserved_count
       FROM slots
+      JOIN menus
+        ON menus.id = slots.menu_id
       LEFT JOIN reservations
         ON slots.id = reservations.slot_id
         AND reservations.status = 'active'
       WHERE slots.id = ?
         AND slots.is_active = 1
-      GROUP BY slots.id
+        AND menus.is_active = 1
+      GROUP BY slots.id, menus.id
     `;
   
     db.get(checkSql, [slotId], (err, slotInfo) => {
@@ -647,6 +656,17 @@ app.get('/reschedule', (req, res) => {
   
       if (!slotInfo) {
         return res.status(404).send("対象の予約枠が見つかりません");
+      }
+
+      const preliminaryTime = `${slotInfo.start_time} - ${slotInfo.end_time}`;
+      if (
+        plan !== slotInfo.menu_type ||
+        cleanDate !== slotInfo.slot_date ||
+        time !== preliminaryTime
+      ) {
+        return res
+          .status(400)
+          .send("予約内容が正しくありません。日時を選び直してください。");
       }
   
       if (slotInfo.reserved_count >= slotInfo.capacity) {
@@ -677,22 +697,14 @@ app.get('/reschedule', (req, res) => {
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
   
-        const insertValues = [
-          plan,
-          slotId,
-          cleanDate,
-          time,
-          parentName,
-          cleanChildName,
-          childKana,
-          grade,
-          email,
-          phone,
-          note || ""
-        ];
-
-        function sendEmailsAndComplete(reservationId) {
-            const [startTime, endTime] = time.split(" - ");
+        function sendEmailsAndComplete(reservationId, confirmedReservation) {
+          const {
+            plan: confirmedPlan,
+            date: confirmedDate,
+            time: confirmedTime
+          } = confirmedReservation;
+          const planLabel = getPlanLabel(confirmedPlan);
+          const [startTime, endTime] = confirmedTime.split(" - ");
 
 addReservationToGoogleCalendar({
   summary: `${cleanChildName}｜${planLabel}`,
@@ -704,7 +716,7 @@ addReservationToGoogleCalendar({
 メール：${email}
 やりたい練習・相談内容：${note || "なし"}
   `.trim(),
-  date: cleanDate,
+  date: confirmedDate,
   startTime,
   endTime
 })
@@ -738,8 +750,8 @@ addReservationToGoogleCalendar({
               html: `
                 <h2>新しい予約が入りました</h2>
                 <p><strong>プラン</strong>：${planLabel}</p>
-                <p><strong>日付</strong>：${cleanDate}</p>
-                <p><strong>時間</strong>：${time}</p>
+                <p><strong>日付</strong>：${confirmedDate}</p>
+                <p><strong>時間</strong>：${confirmedTime}</p>
                 <p><strong>保護者名</strong>：${parentName}</p>
                 <p><strong>お子さま名</strong>：${cleanChildName}</p>
                 <p><strong>学年</strong>：${grade}</p>
@@ -770,8 +782,8 @@ addReservationToGoogleCalendar({
                 <hr>
   
                 <p><strong>プラン</strong>：${planLabel}</p>
-                <p><strong>日付</strong>：${cleanDate}</p>
-                <p><strong>時間</strong>：${time}</p>
+                <p><strong>日付</strong>：${confirmedDate}</p>
+                <p><strong>時間</strong>：${confirmedTime}</p>
                 <p><strong>お名前</strong>：${cleanChildName}</p>
                 <p><strong>学年</strong>：${grade}</p>
   
@@ -837,7 +849,7 @@ addReservationToGoogleCalendar({
           });
         }
 
-        function rollback(message, error) {
+        function rollback(message, error, statusCode = 200) {
           if (error) {
             console.error("ゲスト予約トランザクションエラー:", error);
           }
@@ -848,7 +860,7 @@ addReservationToGoogleCalendar({
             }
 
             closeTransactionConnection(() => {
-              res.send(message);
+              res.status(statusCode).send(message);
             });
           });
         }
@@ -870,13 +882,31 @@ addReservationToGoogleCalendar({
               return rollback("対象の予約枠が見つかりません");
             }
 
+            const confirmedReservation = {
+              plan: currentSlotInfo.menu_type,
+              date: currentSlotInfo.slot_date,
+              time: `${currentSlotInfo.start_time} - ${currentSlotInfo.end_time}`
+            };
+
+            if (
+              plan !== confirmedReservation.plan ||
+              cleanDate !== confirmedReservation.date ||
+              time !== confirmedReservation.time
+            ) {
+              return rollback(
+                "予約内容が正しくありません。日時を選び直してください。",
+                null,
+                400
+              );
+            }
+
             if (currentSlotInfo.reserved_count >= currentSlotInfo.capacity) {
               return rollback("この予約枠は満席です");
             }
 
             transactionDb.get(
               duplicateSql,
-              [slotId, email, cleanChildName],
+              [currentSlotInfo.slot_id, email, cleanChildName],
               (duplicateErr, currentExisting) => {
                 if (duplicateErr) {
                   return rollback("重複予約の確認に失敗しました", duplicateErr);
@@ -885,6 +915,20 @@ addReservationToGoogleCalendar({
                 if (currentExisting) {
                   return rollback("この予約枠はすでに予約済みです");
                 }
+
+                const insertValues = [
+                  confirmedReservation.plan,
+                  currentSlotInfo.slot_id,
+                  confirmedReservation.date,
+                  confirmedReservation.time,
+          parentName,
+          cleanChildName,
+          childKana,
+          grade,
+          email,
+          phone,
+                  note || ""
+                ];
 
                 transactionDb.run(insertSql, insertValues, function (insertErr) {
                   if (insertErr) {
@@ -899,7 +943,7 @@ addReservationToGoogleCalendar({
                     }
 
                     closeTransactionConnection(() => {
-                      sendEmailsAndComplete(reservationId);
+                      sendEmailsAndComplete(reservationId, confirmedReservation);
                     });
                   });
                 });
@@ -1608,15 +1652,26 @@ res.render('admin-reservation-detail', {
   
       const checkSql = `
         SELECT
+          slots.id AS slot_id,
+          slots.menu_id,
+          slots.date AS slot_date,
+          slots.start_time,
+          slots.end_time,
           slots.capacity,
+          slots.is_active AS slot_is_active,
+          menus.type AS menu_type,
+          menus.is_active AS menu_is_active,
           COUNT(reservations.id) AS reserved_count
         FROM slots
+        JOIN menus
+          ON menus.id = slots.menu_id
         LEFT JOIN reservations
           ON slots.id = reservations.slot_id
           AND reservations.status = 'active'
         WHERE slots.id = ?
           AND slots.is_active = 1
-        GROUP BY slots.id
+          AND menus.is_active = 1
+        GROUP BY slots.id, menus.id
       `;
   
       db.get(checkSql, [slotId], (err, slotInfo) => {
@@ -1626,6 +1681,17 @@ res.render('admin-reservation-detail', {
   
         if (!slotInfo) {
           return res.status(404).send('対象の予約枠が見つかりません');
+        }
+
+        const preliminaryTime = `${slotInfo.start_time} - ${slotInfo.end_time}`;
+        if (
+          plan !== slotInfo.menu_type ||
+          date !== slotInfo.slot_date ||
+          time !== preliminaryTime
+        ) {
+          return res
+            .status(400)
+            .send('予約内容が正しくありません。日時を選び直してください。');
         }
   
         if (slotInfo.reserved_count >= slotInfo.capacity) {
@@ -1666,26 +1732,31 @@ res.render('admin-reservation-detail', {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
   
-          const values = [
-            req.session.memberId,
-            plan,
-            slotId,
-            date,
-            time,
-            member.guardian_name || '',
-            member.name,
-            member.kana,
-            member.grade,
-            member.email,
-            member.phone,
-            note || ''
-          ];
-  
-          const planLabel = getPlanLabel(plan);
+          function buildReservationValues(confirmedReservation) {
+            return [
+              req.session.memberId,
+              confirmedReservation.plan,
+              confirmedReservation.slotId,
+              confirmedReservation.date,
+              confirmedReservation.time,
+              member.guardian_name || '',
+              member.name,
+              member.kana,
+              member.grade,
+              member.email,
+              member.phone,
+              note || ''
+            ];
+          }
 
-          function sendEmailsAndComplete(reservationId) {
-
-              const [startTime, endTime] = time.split(" - ");
+          function sendEmailsAndComplete(reservationId, confirmedReservation) {
+              const {
+                plan: confirmedPlan,
+                date: confirmedDate,
+                time: confirmedTime
+              } = confirmedReservation;
+              const planLabel = getPlanLabel(confirmedPlan);
+              const [startTime, endTime] = confirmedTime.split(" - ");
 
 addReservationToGoogleCalendar({
   summary: `${member.name}｜${planLabel}`,
@@ -1696,7 +1767,7 @@ addReservationToGoogleCalendar({
 電話番号：${member.phone}
 やりたい練習・相談内容：${note || "なし"}
   `.trim(),
-  date,
+  date: confirmedDate,
   startTime,
   endTime
 })
@@ -1729,8 +1800,8 @@ addReservationToGoogleCalendar({
                 html: `
                   <h2>会員予約が入りました</h2>
                   <p><strong>プラン</strong>：${planLabel}</p>
-                  <p><strong>日付</strong>：${date}</p>
-                  <p><strong>時間</strong>：${time}</p>
+                  <p><strong>日付</strong>：${confirmedDate}</p>
+                  <p><strong>時間</strong>：${confirmedTime}</p>
                   <p><strong>会員名</strong>：${member.name}</p>
                   <p><strong>保護者名</strong>：${member.guardian_name || 'なし'}</p>
                   <p><strong>学年</strong>：${member.grade}</p>
@@ -1757,8 +1828,8 @@ addReservationToGoogleCalendar({
                   <hr>
   
                   <p><strong>プラン</strong>：${planLabel}</p>
-                  <p><strong>日付</strong>：${date}</p>
-                  <p><strong>時間</strong>：${time}</p>
+                  <p><strong>日付</strong>：${confirmedDate}</p>
+                  <p><strong>時間</strong>：${confirmedTime}</p>
                   <p><strong>お名前</strong>：${member.name}</p>
                   <p><strong>学年</strong>：${member.grade}</p>
   
@@ -1776,7 +1847,28 @@ addReservationToGoogleCalendar({
               res.render('complete');
           }
 
-          if (plan === 'elementary_reschedule' || plan === 'junior_reschedule') {
+          function getConfirmedReservation(currentSlotInfo) {
+            return {
+              plan: currentSlotInfo.menu_type,
+              slotId: currentSlotInfo.slot_id,
+              date: currentSlotInfo.slot_date,
+              time: `${currentSlotInfo.start_time} - ${currentSlotInfo.end_time}`
+            };
+          }
+
+          function matchesSubmittedReservation(confirmedReservation) {
+            return (
+              plan === confirmedReservation.plan &&
+              date === confirmedReservation.date &&
+              time === confirmedReservation.time
+            );
+          }
+
+          function isReschedulePlan(value) {
+            return value === 'elementary_reschedule' || value === 'junior_reschedule';
+          }
+
+          if (isReschedulePlan(slotInfo.menu_type)) {
             const transactionDb = db.createConnection();
 
             function closeTransactionConnection(callback) {
@@ -1788,7 +1880,7 @@ addReservationToGoogleCalendar({
               });
             }
 
-            function rollback(message, error) {
+            function rollback(message, error, statusCode = 200) {
               if (error) {
                 console.error('振替予約トランザクションエラー:', error);
               }
@@ -1799,7 +1891,7 @@ addReservationToGoogleCalendar({
                 }
 
                 closeTransactionConnection(() => {
-                  res.send(message);
+                  res.status(statusCode).send(message);
                 });
               });
             }
@@ -1821,13 +1913,26 @@ addReservationToGoogleCalendar({
                   return rollback('対象の予約枠が見つかりません');
                 }
 
+                const confirmedReservation = getConfirmedReservation(currentSlotInfo);
+
+                if (
+                  !isReschedulePlan(confirmedReservation.plan) ||
+                  !matchesSubmittedReservation(confirmedReservation)
+                ) {
+                  return rollback(
+                    '予約内容が正しくありません。日時を選び直してください。',
+                    null,
+                    400
+                  );
+                }
+
                 if (currentSlotInfo.reserved_count >= currentSlotInfo.capacity) {
                   return rollback('この予約枠は満席です');
                 }
 
                 transactionDb.get(
                   duplicateSql,
-                  [slotId, req.session.memberId],
+                  [confirmedReservation.slotId, req.session.memberId],
                   (duplicateErr, currentExisting) => {
                     if (duplicateErr) {
                       return rollback('振替処理に失敗しました', duplicateErr);
@@ -1874,6 +1979,8 @@ addReservationToGoogleCalendar({
                               return rollback('振替予約をするには、先に欠席登録が必要です');
                             }
 
+                            const values = buildReservationValues(confirmedReservation);
+
                             transactionDb.run(insertSql, values, function (insertErr) {
                               if (insertErr) {
                                 return rollback('予約の保存に失敗しました', insertErr);
@@ -1887,7 +1994,7 @@ addReservationToGoogleCalendar({
                                 }
 
                                 closeTransactionConnection(() => {
-                                  sendEmailsAndComplete(reservationId);
+                                  sendEmailsAndComplete(reservationId, confirmedReservation);
                                 });
                               });
                             });
@@ -1911,7 +2018,7 @@ addReservationToGoogleCalendar({
               });
             }
 
-            function rollback(message, error) {
+            function rollback(message, error, statusCode = 200) {
               if (error) {
                 console.error('会員予約トランザクションエラー:', error);
               }
@@ -1922,7 +2029,7 @@ addReservationToGoogleCalendar({
                 }
 
                 closeTransactionConnection(() => {
-                  res.send(message);
+                  res.status(statusCode).send(message);
                 });
               });
             }
@@ -1944,13 +2051,26 @@ addReservationToGoogleCalendar({
                   return rollback('対象の予約枠が見つかりません');
                 }
 
+                const confirmedReservation = getConfirmedReservation(currentSlotInfo);
+
+                if (
+                  isReschedulePlan(confirmedReservation.plan) ||
+                  !matchesSubmittedReservation(confirmedReservation)
+                ) {
+                  return rollback(
+                    '予約内容が正しくありません。日時を選び直してください。',
+                    null,
+                    400
+                  );
+                }
+
                 if (currentSlotInfo.reserved_count >= currentSlotInfo.capacity) {
                   return rollback('この予約枠は満席です');
                 }
 
                 transactionDb.get(
                   duplicateSql,
-                  [slotId, req.session.memberId],
+                  [confirmedReservation.slotId, req.session.memberId],
                   (duplicateErr, currentExisting) => {
                     if (duplicateErr) {
                       return rollback('重複予約の確認に失敗しました', duplicateErr);
@@ -1959,6 +2079,8 @@ addReservationToGoogleCalendar({
                     if (currentExisting) {
                       return rollback('この予約枠はすでに予約済みです');
                     }
+
+                    const values = buildReservationValues(confirmedReservation);
 
                     transactionDb.run(insertSql, values, function (insertErr) {
                       if (insertErr) {
@@ -1973,7 +2095,7 @@ addReservationToGoogleCalendar({
                         }
 
                         closeTransactionConnection(() => {
-                          sendEmailsAndComplete(reservationId);
+                          sendEmailsAndComplete(reservationId, confirmedReservation);
                         });
                       });
                     });
