@@ -6,12 +6,16 @@
   <title>欠席・振替履歴 | SiegSports</title>
   <link rel="stylesheet" href="/css/guest-form.css">
   <style>
-    .history-overview { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .history-overview { text-align: center; }
     .available-count { font-size: 18px; font-weight: 700; }
-    .history-period, .history-time { color: #666; font-size: 13px; }
+    .history-period { margin: -8px 20px 0; color: #888; font-size: 12px; text-align: center; }
+    .history-time { color: #666; font-size: 13px; }
     .history-section-title { margin: 26px 20px 12px; font-size: 18px; }
+    .reschedule-section { margin-top: 36px; padding-top: 28px; border-top: 1px solid #ddd; }
+    .history-section-note { margin: -6px 20px 14px; color: #888; font-size: 12px; }
     .history-card { background: #fff; margin: 0 20px 12px; padding: 18px 16px; border: 1px solid #e5e5e5; border-radius: 16px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04); }
     .history-date { margin-bottom: 10px; font-size: 18px; font-weight: 700; }
+    .absence-date { margin-bottom: 0; }
     .history-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .history-details { min-width: 0; }
     .history-time { margin-bottom: 3px; }
@@ -44,8 +48,8 @@
 
     <section class="summary-box history-overview">
       <span class="available-count">振替可能 <%= availableCount %>回</span>
-      <span class="history-period">過去6か月</span>
     </section>
+    <p class="history-period">履歴は過去6か月を表示しています</p>
 
     <h2 class="history-section-title">欠席履歴</h2>
     <% if (!absences || absences.length === 0) { %>
@@ -53,9 +57,8 @@
     <% } else { %>
       <% absences.forEach(a => { %>
         <article class="history-card">
-          <div class="history-date"><%= formatHistoryDate(a.absence_date) %></div>
           <div class="history-row">
-            <span>欠席</span>
+            <div class="history-date absence-date"><%= formatHistoryDate(a.absence_date) %></div>
             <span class="status-badge <%= Number(a.used) === 1 ? 'used' : '' %>"><%= Number(a.used) === 1 ? '振替済み' : '振替可能' %></span>
           </div>
           <% if (a.note) { %>
@@ -65,7 +68,10 @@
       <% }) %>
     <% } %>
 
-    <h2 class="history-section-title">振替履歴</h2>
+    <div class="reschedule-section">
+      <h2 class="history-section-title">振替予約履歴</h2>
+      <p class="history-section-note">過去に予約した振替です。欠席履歴との個別の対応は表示していません。</p>
+    </div>
     <% if (!reschedules || reschedules.length === 0) { %>
       <p class="empty-history">過去6か月の振替予約はありません。</p>
     <% } else { %>
