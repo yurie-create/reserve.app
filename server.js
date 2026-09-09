@@ -11,6 +11,7 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const bcrypt = require('bcrypt');
 const crypto = require("crypto");
+const net = require('node:net');
 const { google } = require("googleapis");
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
@@ -2530,6 +2531,22 @@ addReservationToGoogleCalendar({
 
   app.get('/admin', requireAdmin,(req, res) => {
     res.render('admin-top');
+  });
+
+  app.get('/admin/debug-client-ip', requireAdmin, (req, res) => {
+    const ipVersion = net.isIP(req.ip || '');
+    const forwardedFor = req.get('x-forwarded-for');
+    const forwardedForEntryCount = forwardedFor
+      ? forwardedFor.split(',').filter(entry => entry.trim()).length
+      : 0;
+
+    res.json({
+      addressType: ipVersion === 4 ? 'IPv4' : ipVersion === 6 ? 'IPv6' : 'その他',
+      trustedProxyAddressCount: Array.isArray(req.ips) ? req.ips.length : 0,
+      socketAddressMatchesClientAddress: req.socket.remoteAddress === req.ip,
+      xForwardedForPresent: Boolean(forwardedFor),
+      xForwardedForEntryCount: forwardedForEntryCount
+    });
   });
 
   app.get('/admin/canceled-reservations', requireAdmin,(req, res) => {
