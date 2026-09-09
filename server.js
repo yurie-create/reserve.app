@@ -222,6 +222,148 @@ function requireMember(req, res, next) {
   next();
 }
 
+const MEMBER_RESERVATION_RETURN_MAX_AGE_MS = 15 * 60 * 1000;
+const MEMBER_RESERVATION_PLANS = new Set([
+  'trial',
+  'lesson',
+  'personal30',
+  'personal60',
+  'reschedule',
+  'elementary_reschedule',
+  'junior_reschedule'
+]);
+const MEMBER_LOGIN_NEXT_PATHS = new Set([
+  '/reschedule',
+  '/monthly-entry',
+  '/mypage/records'
+]);
+
+function buildMemberReservationReturnTo({ plan, date, time, slotId }) {
+  if (
+    typeof plan !== 'string' ||
+    typeof date !== 'string' ||
+    typeof time !== 'string' ||
+    typeof slotId !== 'string'
+  ) {
+    return null;
+  }
+
+  if (!MEMBER_RESERVATION_PLANS.has(plan)) {
+    return null;
+  }
+
+  const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!dateMatch) {
+    return null;
+  }
+
+  const dateObject = new Date(`${date}T00:00:00Z`);
+  if (
+    Number.isNaN(dateObject.getTime()) ||
+    dateObject.toISOString().slice(0, 10) !== date
+  ) {
+    return null;
+  }
+
+  if (!/^([01]\d|2[0-3]):[0-5]\d - ([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    return null;
+  }
+
+  if (!/^[1-9]\d*$/.test(slotId) || !Number.isSafeInteger(Number(slotId))) {
+    return null;
+  }
+
+  const params = new URLSearchParams({ plan, date, time, slotId });
+  return `/member-reserve?${params.toString()}`;
+}
+
+function getValidMemberReservationReturnTo(value) {
+  if (
+    !value ||
+    typeof value.path !== 'string' ||
+    typeof value.createdAt !== 'number' ||
+    value.createdAt > Date.now() ||
+    Date.now() - value.createdAt > MEMBER_RESERVATION_RETURN_MAX_AGE_MS
+  ) {
+    return null;
+  }
+
+  let url;
+
+  try {
+    url = new URL(value.path, 'http://internal.local');
+  } catch {
+    return null;
+  }
+
+  if (
+    url.origin !== 'http://internal.local' ||
+    url.pathname !== '/member-reserve' ||
+    url.hash ||
+    [...url.searchParams.keys()].some(
+      (key) => !['plan', 'date', 'time', 'slotId'].includes(key)
+    )
+  ) {
+    return null;
+  }
+
+  const fields = {};
+  for (const key of ['plan', 'date', 'time', 'slotId']) {
+    const values = url.searchParams.getAll(key);
+    if (values.length !== 1) {
+      return null;
+    }
+    fields[key] = values[0];
+  }
+
+  return buildMemberReservationReturnTo(fields);
+}
+
+function getSafeMemberLoginNext(value) {
+  if (typeof value !== 'string' || !value) {
+    return null;
+  }
+
+  let url;
+
+  try {
+    url = new URL(value, 'http://internal.local');
+  } catch {
+    return null;
+  }
+
+  if (url.origin !== 'http://internal.local' || url.hash) {
+    return null;
+  }
+
+  if (url.pathname === '/member-reserve') {
+    const fields = {};
+    for (const key of ['plan', 'date', 'time', 'slotId']) {
+      const values = url.searchParams.getAll(key);
+      if (values.length !== 1) {
+        return null;
+      }
+      fields[key] = values[0];
+    }
+
+    if (
+      [...url.searchParams.keys()].some(
+        (key) => !['plan', 'date', 'time', 'slotId'].includes(key)
+      )
+    ) {
+      return null;
+    }
+
+    return buildMemberReservationReturnTo(fields);
+  }
+
+  if (!MEMBER_LOGIN_NEXT_PATHS.has(url.pathname) || url.search) {
+    return null;
+  }
+
+  return url.pathname;
+}
+
 app.get("/", (req, res) => {
   db.all(
     "SELECT * FROM menus WHERE is_active = 1 AND type != 'subscription' ORDER BY sort_order ASC",
@@ -1364,7 +1506,10 @@ res.render('admin-reservation-detail', {
           return res.send('パスワードが間違っています');
         }
   
-        const next = req.body.next || '/mypage/records';
+        const reservationReturnTo = getValidMemberReservationReturnTo(
+          req.session.memberReservationReturnTo
+        );
+        const next = getSafeMemberLoginNext(req.body.next);
         const wasAdmin = req.session.isAdmin === true;
 
         req.session.regenerate((regenerateErr) => {
@@ -1387,7 +1532,7 @@ res.render('admin-reservation-detail', {
               });
             }
 
-            res.redirect(next);
+            res.redirect(reservationReturnTo || next || '/mypage/records');
           });
         });
       } catch (error) {
@@ -1402,7 +1547,25 @@ res.render('admin-reservation-detail', {
     console.log('member-reserve plan:', plan);
   
     if (!req.session.memberId) {
-      return res.redirect('/members/login');
+      const returnTo = buildMemberReservationReturnTo({ plan, date, time, slotId });
+
+      if (!returnTo) {
+        return res.redirect('/members/login');
+      }
+
+      req.session.memberReservationReturnTo = {
+        path: returnTo,
+        createdAt: Date.now()
+      };
+
+      return req.session.save((err) => {
+        if (err) {
+          console.error('会員予約の復帰情報を保存できませんでした');
+          return res.status(500).send('ログイン画面へ移動できませんでした');
+        }
+
+        res.redirect('/members/login');
+      });
     }
   
     const sql = `
