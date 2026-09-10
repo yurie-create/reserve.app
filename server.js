@@ -266,6 +266,62 @@ function safeJsonForHtml(value) {
     .replace(/\u2029/g, '\\u2029');
 }
 
+function validateRequiredString(value, maxLength) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized || [...normalized].length > maxLength) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function validateOptionalString(value, maxLength) {
+  if (value === undefined || value === null || value === '') {
+    return { valid: true, value: '' };
+  }
+
+  if (typeof value !== 'string') {
+    return { valid: false, value: '' };
+  }
+
+  const normalized = value.trim();
+  if ([...normalized].length > maxLength) {
+    return { valid: false, value: '' };
+  }
+
+  return { valid: true, value: normalized };
+}
+
+function validateAndNormalizeEmail(value) {
+  const normalized = validateRequiredString(value, 254);
+  if (!normalized) {
+    return null;
+  }
+
+  const email = normalized.toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return null;
+  }
+
+  return email;
+}
+
+function validatePassword(value, { requireMinimumLength }) {
+  if (typeof value !== 'string' || value.length === 0) {
+    return false;
+  }
+
+  if (requireMinimumLength && [...value].length < 8) {
+    return false;
+  }
+
+  return Buffer.byteLength(value, 'utf8') <= 72;
+}
+
 app.locals.formatPlan = getPlanLabel;
 app.locals.formatCourse = getCourseLabel;
 app.locals.safeJsonForHtml = safeJsonForHtml;
@@ -655,27 +711,44 @@ app.get('/reschedule', (req, res) => {
   });
 
   app.post("/complete", guestBookingRateLimiter, (req, res) => {
-    const {
-      plan,
-      date,
-      rawDate,
-      time,
-      slotId,
-      parentName,
-      childName,
-      childKana,
-      grade,
-      email,
-      phone,
-      note
-    } = req.body;
-  
-    const cleanDate = rawDate;
-    const cleanChildName = childName.trim();
-  
-    if (!cleanDate) {
-      return res.status(400).send("日付の形式が正しくありません");
+    const plan = validateRequiredString(req.body.plan, 50);
+    const date = validateRequiredString(req.body.date, 50);
+    const cleanDate = validateRequiredString(req.body.rawDate, 10);
+    const time = validateRequiredString(req.body.time, 20);
+    const slotId = validateRequiredString(req.body.slotId, 20);
+    const parentNameResult = validateOptionalString(req.body.parentName, 100);
+    const cleanChildName = validateRequiredString(req.body.childName, 100);
+    const childKana = validateRequiredString(req.body.childKana, 100);
+    const grade = validateRequiredString(req.body.grade, 50);
+    const email = validateAndNormalizeEmail(req.body.email);
+    const phone = validateRequiredString(req.body.phone, 50);
+    const noteResult = validateOptionalString(req.body.note, 2000);
+
+    if (
+      !plan ||
+      !date ||
+      !cleanDate ||
+      !time ||
+      !slotId ||
+      !/^\d+$/.test(slotId) ||
+      !Number.isSafeInteger(Number(slotId)) ||
+      Number(slotId) <= 0 ||
+      !parentNameResult.valid ||
+      !cleanChildName ||
+      !childKana ||
+      !grade ||
+      !phone ||
+      !noteResult.valid
+    ) {
+      return res.status(400).send("入力内容を確認してください。");
     }
+
+    if (!email) {
+      return res.status(400).send("メールアドレスを確認してください。");
+    }
+
+    const parentName = parentNameResult.value;
+    const note = noteResult.value;
   
     const checkSql = `
       SELECT
@@ -1447,16 +1520,36 @@ res.render('admin-reservation-detail', {
 
 
   app.post('/members', memberRegistrationRateLimiter, (req, res) => {
-    const {
-      name,
-      kana,
-      grade,
-      email,
-      phone,
-      guardian_name,
-      note,
-      password
-    } = req.body;
+    const name = validateRequiredString(req.body.name, 100);
+    const kana = validateRequiredString(req.body.kana, 100);
+    const grade = validateRequiredString(req.body.grade, 50);
+    const email = validateAndNormalizeEmail(req.body.email);
+    const phone = validateRequiredString(req.body.phone, 50);
+    const guardianNameResult = validateOptionalString(req.body.guardian_name, 100);
+    const noteResult = validateOptionalString(req.body.note, 2000);
+    const password = req.body.password;
+
+    if (
+      !name ||
+      !kana ||
+      !grade ||
+      !phone ||
+      !guardianNameResult.valid ||
+      !noteResult.valid
+    ) {
+      return res.status(400).send('入力内容を確認してください。');
+    }
+
+    if (!email) {
+      return res.status(400).send('メールアドレスを確認してください。');
+    }
+
+    if (!validatePassword(password, { requireMinimumLength: true })) {
+      return res.status(400).send('パスワードは8文字以上、72バイト以内で入力してください。');
+    }
+
+    const guardian_name = guardianNameResult.value;
+    const note = noteResult.value;
   
     const checkSql = `
       SELECT id, name, password
@@ -1560,7 +1653,16 @@ res.render('admin-reservation-detail', {
 
 
   app.post('/members/login', memberLoginRateLimiter, (req, res) => {
-    const { email, password } = req.body;
+    const email = validateAndNormalizeEmail(req.body.email);
+    const password = req.body.password;
+
+    if (!email) {
+      return res.status(400).send('メールアドレスを確認してください。');
+    }
+
+    if (!validatePassword(password, { requireMinimumLength: false })) {
+      return res.status(400).send('入力内容を確認してください。');
+    }
   
     const sql = `
       SELECT *
