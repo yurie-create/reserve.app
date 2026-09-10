@@ -322,6 +322,19 @@ function validatePassword(value, { requireMinimumLength }) {
   return Buffer.byteLength(value, 'utf8') <= 72;
 }
 
+function escapeHtmlForEmail(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeHtmlForEmailWithBreaks(value) {
+  return escapeHtmlForEmail(value).replace(/\r\n|\r|\n/g, '<br>');
+}
+
 app.locals.formatPlan = getPlanLabel;
 app.locals.formatCourse = getCourseLabel;
 app.locals.safeJsonForHtml = safeJsonForHtml;
@@ -874,15 +887,15 @@ addReservationToGoogleCalendar({
               subject: "新しい予約が入りました",
               html: `
                 <h2>新しい予約が入りました</h2>
-                <p><strong>プラン</strong>：${planLabel}</p>
-                <p><strong>日付</strong>：${confirmedDate}</p>
-                <p><strong>時間</strong>：${confirmedTime}</p>
-                <p><strong>保護者名</strong>：${parentName}</p>
-                <p><strong>お子さま名</strong>：${cleanChildName}</p>
-                <p><strong>学年</strong>：${grade}</p>
-                <p><strong>メール</strong>：${email}</p>
-                <p><strong>電話番号</strong>：${phone}</p>
-                <p><strong>備考</strong>：${note || "なし"}</p>
+                <p><strong>プラン</strong>：${escapeHtmlForEmail(planLabel)}</p>
+                <p><strong>日付</strong>：${escapeHtmlForEmail(confirmedDate)}</p>
+                <p><strong>時間</strong>：${escapeHtmlForEmail(confirmedTime)}</p>
+                <p><strong>保護者名</strong>：${escapeHtmlForEmail(parentName)}</p>
+                <p><strong>お子さま名</strong>：${escapeHtmlForEmail(cleanChildName)}</p>
+                <p><strong>学年</strong>：${escapeHtmlForEmail(grade)}</p>
+                <p><strong>メール</strong>：${escapeHtmlForEmail(email)}</p>
+                <p><strong>電話番号</strong>：${escapeHtmlForEmail(phone)}</p>
+                <p><strong>備考</strong>：${escapeHtmlForEmailWithBreaks(note || "なし")}</p>
               `
             }).then((result) => {
               console.log("メール送信成功:", result);
@@ -897,7 +910,7 @@ addReservationToGoogleCalendar({
               html: `
                 <h2>ご予約ありがとうございます</h2>
   
-                <p>${parentName || cleanChildName} 様</p>
+                <p>${escapeHtmlForEmail(parentName || cleanChildName)} 様</p>
   
                 <p>
                   この度はジークスポーツのご予約ありがとうございます。<br>
@@ -906,11 +919,11 @@ addReservationToGoogleCalendar({
   
                 <hr>
   
-                <p><strong>プラン</strong>：${planLabel}</p>
-                <p><strong>日付</strong>：${confirmedDate}</p>
-                <p><strong>時間</strong>：${confirmedTime}</p>
-                <p><strong>お名前</strong>：${cleanChildName}</p>
-                <p><strong>学年</strong>：${grade}</p>
+                <p><strong>プラン</strong>：${escapeHtmlForEmail(planLabel)}</p>
+                <p><strong>日付</strong>：${escapeHtmlForEmail(confirmedDate)}</p>
+                <p><strong>時間</strong>：${escapeHtmlForEmail(confirmedTime)}</p>
+                <p><strong>お名前</strong>：${escapeHtmlForEmail(cleanChildName)}</p>
+                <p><strong>学年</strong>：${escapeHtmlForEmail(grade)}</p>
   
                 <hr>
   
@@ -1954,15 +1967,15 @@ addReservationToGoogleCalendar({
                 subject: '【会員予約】新しい予約が入りました',
                 html: `
                   <h2>会員予約が入りました</h2>
-                  <p><strong>プラン</strong>：${planLabel}</p>
-                  <p><strong>日付</strong>：${confirmedDate}</p>
-                  <p><strong>時間</strong>：${confirmedTime}</p>
-                  <p><strong>会員名</strong>：${member.name}</p>
-                  <p><strong>保護者名</strong>：${member.guardian_name || 'なし'}</p>
-                  <p><strong>学年</strong>：${member.grade}</p>
-                  <p><strong>メール</strong>：${member.email}</p>
-                  <p><strong>電話番号</strong>：${member.phone}</p>
-                  <p><strong>やりたい練習・相談内容</strong>：${note || 'なし'}</p>
+                  <p><strong>プラン</strong>：${escapeHtmlForEmail(planLabel)}</p>
+                  <p><strong>日付</strong>：${escapeHtmlForEmail(confirmedDate)}</p>
+                  <p><strong>時間</strong>：${escapeHtmlForEmail(confirmedTime)}</p>
+                  <p><strong>会員名</strong>：${escapeHtmlForEmail(member.name)}</p>
+                  <p><strong>保護者名</strong>：${escapeHtmlForEmail(member.guardian_name || 'なし')}</p>
+                  <p><strong>学年</strong>：${escapeHtmlForEmail(member.grade)}</p>
+                  <p><strong>メール</strong>：${escapeHtmlForEmail(member.email)}</p>
+                  <p><strong>電話番号</strong>：${escapeHtmlForEmail(member.phone)}</p>
+                  <p><strong>やりたい練習・相談内容</strong>：${escapeHtmlForEmailWithBreaks(note || 'なし')}</p>
                 `
               }).then((result) => {
                 console.log('会員予約メール送信成功:', result);
@@ -1976,17 +1989,17 @@ addReservationToGoogleCalendar({
                 subject: '【ジークスポーツ】ご予約ありがとうございます',
                 html: `
                   <h2>ご予約ありがとうございます</h2>
-                  <p>${member.guardian_name || member.name} 様</p>
+                  <p>${escapeHtmlForEmail(member.guardian_name || member.name)} 様</p>
   
                   <p>以下の内容でご予約を承りました。</p>
   
                   <hr>
   
-                  <p><strong>プラン</strong>：${planLabel}</p>
-                  <p><strong>日付</strong>：${confirmedDate}</p>
-                  <p><strong>時間</strong>：${confirmedTime}</p>
-                  <p><strong>お名前</strong>：${member.name}</p>
-                  <p><strong>学年</strong>：${member.grade}</p>
+                  <p><strong>プラン</strong>：${escapeHtmlForEmail(planLabel)}</p>
+                  <p><strong>日付</strong>：${escapeHtmlForEmail(confirmedDate)}</p>
+                  <p><strong>時間</strong>：${escapeHtmlForEmail(confirmedTime)}</p>
+                  <p><strong>お名前</strong>：${escapeHtmlForEmail(member.name)}</p>
+                  <p><strong>学年</strong>：${escapeHtmlForEmail(member.grade)}</p>
   
                   <hr>
   
@@ -2453,12 +2466,12 @@ addReservationToGoogleCalendar({
     html: `
       <h2>予約がキャンセルされました</h2>
   
-      <p><strong>予約ID</strong>：${reservation.id}</p>
-      <p><strong>プラン</strong>：${getPlanLabel(reservation.plan)}</p>
-      <p><strong>日付</strong>：${reservation.date}</p>
-      <p><strong>時間</strong>：${reservation.time}</p>
-      <p><strong>お名前</strong>：${reservation.child_name}</p>
-      <p><strong>メール</strong>：${reservation.email}</p>
+      <p><strong>予約ID</strong>：${escapeHtmlForEmail(reservation.id)}</p>
+      <p><strong>プラン</strong>：${escapeHtmlForEmail(getPlanLabel(reservation.plan))}</p>
+      <p><strong>日付</strong>：${escapeHtmlForEmail(reservation.date)}</p>
+      <p><strong>時間</strong>：${escapeHtmlForEmail(reservation.time)}</p>
+      <p><strong>お名前</strong>：${escapeHtmlForEmail(reservation.child_name)}</p>
+      <p><strong>メール</strong>：${escapeHtmlForEmail(reservation.email)}</p>
     `
   }).then((result) => {
     console.log('キャンセルメール送信成功:', result);
@@ -2614,20 +2627,20 @@ addReservationToGoogleCalendar({
                 <h2>新しい入会申請がありました</h2>
   
                 <h3>■ 会員情報</h3>
-                <p><strong>名前</strong>：${member.name || ''}</p>
-                <p><strong>ふりがな</strong>：${member.kana || ''}</p>
-                <p><strong>保護者名</strong>：${member.guardian_name || 'なし'}</p>
-                <p><strong>メール</strong>：${member.email || ''}</p>
-                <p><strong>電話</strong>：${member.phone || ''}</p>
-                <p><strong>学年 / 年齢</strong>：${member.grade || ''}</p>
+                <p><strong>名前</strong>：${escapeHtmlForEmail(member.name || '')}</p>
+                <p><strong>ふりがな</strong>：${escapeHtmlForEmail(member.kana || '')}</p>
+                <p><strong>保護者名</strong>：${escapeHtmlForEmail(member.guardian_name || 'なし')}</p>
+                <p><strong>メール</strong>：${escapeHtmlForEmail(member.email || '')}</p>
+                <p><strong>電話</strong>：${escapeHtmlForEmail(member.phone || '')}</p>
+                <p><strong>学年 / 年齢</strong>：${escapeHtmlForEmail(member.grade || '')}</p>
   
                 <h3>■ 入会内容</h3>
-                <p><strong>学校名</strong>：${school_name}</p>
-                <p><strong>生年月日</strong>：${birth_date}</p>
-                <p><strong>住所</strong>：${address}</p>
-                <p><strong>コース</strong>：${courseLabel}</p>
-                <p><strong>入会月</strong>：${start_month}</p>
-                <p><strong>SNS掲載</strong>：${snsPermissionLabel}</p>
+                <p><strong>学校名</strong>：${escapeHtmlForEmail(school_name)}</p>
+                <p><strong>生年月日</strong>：${escapeHtmlForEmail(birth_date)}</p>
+                <p><strong>住所</strong>：${escapeHtmlForEmailWithBreaks(address)}</p>
+                <p><strong>コース</strong>：${escapeHtmlForEmail(courseLabel)}</p>
+                <p><strong>入会月</strong>：${escapeHtmlForEmail(start_month)}</p>
+                <p><strong>SNS掲載</strong>：${escapeHtmlForEmail(snsPermissionLabel)}</p>
               `
             }).then((result) => {
               console.log('入会申請メール送信成功:', result);
@@ -2772,14 +2785,14 @@ addReservationToGoogleCalendar({
           html: `
             <h2>欠席登録がありました</h2>
 
-            <p><strong>欠席日</strong>：${absence_date}</p>
-            <p><strong>会員名</strong>：${member?.name || "未取得"}</p>
-            <p><strong>保護者名</strong>：${member?.guardian_name || "未取得"}</p>
-            <p><strong>学年</strong>：${member?.grade || "未取得"}</p>
-            <p><strong>メール</strong>：${member?.email || "未取得"}</p>
-            <p><strong>電話</strong>：${member?.phone || "未取得"}</p>
-            <p><strong>コース</strong>：${getCourseLabel(course)}</p>
-            <p><strong>備考</strong>：${note || "なし"}</p>
+            <p><strong>欠席日</strong>：${escapeHtmlForEmail(absence_date)}</p>
+            <p><strong>会員名</strong>：${escapeHtmlForEmail(member?.name || "未取得")}</p>
+            <p><strong>保護者名</strong>：${escapeHtmlForEmail(member?.guardian_name || "未取得")}</p>
+            <p><strong>学年</strong>：${escapeHtmlForEmail(member?.grade || "未取得")}</p>
+            <p><strong>メール</strong>：${escapeHtmlForEmail(member?.email || "未取得")}</p>
+            <p><strong>電話</strong>：${escapeHtmlForEmail(member?.phone || "未取得")}</p>
+            <p><strong>コース</strong>：${escapeHtmlForEmail(getCourseLabel(course))}</p>
+            <p><strong>備考</strong>：${escapeHtmlForEmailWithBreaks(note || "なし")}</p>
           `
         }).then((result) => {
           console.log("欠席通知メール送信成功:", result);
