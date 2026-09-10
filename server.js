@@ -335,6 +335,72 @@ function escapeHtmlForEmailWithBreaks(value) {
   return escapeHtmlForEmail(value).replace(/\r\n|\r|\n/g, '<br>');
 }
 
+const MAX_SLOT_CAPACITY = 100;
+const MAX_SLOT_MENU_IDS = 20;
+const MAX_BULK_SLOT_DATES = 62;
+const MAX_SLOT_DATE_RANGE_DAYS = 366;
+const MAX_GENERATED_SLOTS = 300;
+
+function parseBoundedInteger(value, min, max) {
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    return null;
+  }
+
+  const number = Number(value);
+  if (!Number.isSafeInteger(number) || number < min || number > max) {
+    return null;
+  }
+
+  return number;
+}
+
+function parsePositiveIntegerArray(value, maxItems) {
+  const values = Array.isArray(value) ? value : [value];
+  if (!value || values.length === 0 || values.length > maxItems) {
+    return null;
+  }
+
+  const parsed = values.map(item => parseBoundedInteger(item, 1, Number.MAX_SAFE_INTEGER));
+  if (parsed.some(item => item === null)) {
+    return null;
+  }
+
+  return [...new Set(parsed)];
+}
+
+function isValidDateString(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function isValidTimeString(value) {
+  return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function timeToMinutes(value) {
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function validateActiveMenuIds(menuIds, callback) {
+  const placeholders = menuIds.map(() => '?').join(',');
+  db.all(
+    `SELECT id FROM menus WHERE is_active = 1 AND id IN (${placeholders})`,
+    menuIds,
+    (err, rows) => {
+      if (err) {
+        return callback(err);
+      }
+
+      callback(null, rows.length === menuIds.length);
+    }
+  );
+}
+
 app.locals.formatPlan = getPlanLabel;
 app.locals.formatCourse = getCourseLabel;
 app.locals.safeJsonForHtml = safeJsonForHtml;
@@ -1194,14 +1260,19 @@ addReservationToGoogleCalendar({
   });
  
   app.post("/admin/add-slot", requireAdmin, requireAdminCsrf, (req, res) => {
-    let { menu_ids, date, start_time, end_time, capacity } = req.body;
-  
-    if (!menu_ids) {
-      return res.redirect("/admin/slots?error=menu");
-    }
-  
-    if (!Array.isArray(menu_ids)) {
-      menu_ids = [menu_ids];
+    const menuIds = parsePositiveIntegerArray(req.body.menu_ids, MAX_SLOT_MENU_IDS);
+    const { date, start_time, end_time } = req.body;
+    const capacity = parseBoundedInteger(req.body.capacity, 1, MAX_SLOT_CAPACITY);
+
+    if (
+      !menuIds ||
+      !isValidDateString(date) ||
+      !isValidTimeString(start_time) ||
+      !isValidTimeString(end_time) ||
+      timeToMinutes(start_time) >= timeToMinutes(end_time) ||
+      capacity === null
+    ) {
+      return res.status(400).send("入力内容を確認してください。");
     }
   
     const sql = `
@@ -1209,20 +1280,31 @@ addReservationToGoogleCalendar({
       VALUES (?, ?, ?, ?, ?, 1)
     `;
   
-    let completed = 0;
-  
-    menu_ids.forEach(menu_id => {
-      db.run(sql, [menu_id, date, start_time, end_time, capacity], function (err) {
-        if (err) {
-          console.error(err);
-          return res.send("slot追加失敗");
-        }
-  
-        completed++;
-  
-        if (completed === menu_ids.length) {
-          res.redirect("/admin/slots?success=スロットを追加しました");
-        }
+    validateActiveMenuIds(menuIds, (menuErr, allMenusExist) => {
+      if (menuErr) {
+        console.error(menuErr);
+        return res.status(500).send("メニューの確認に失敗しました");
+      }
+
+      if (!allMenusExist) {
+        return res.status(400).send("入力内容を確認してください。");
+      }
+
+      let completed = 0;
+
+      menuIds.forEach(menuId => {
+        db.run(sql, [menuId, date, start_time, end_time, capacity], function (err) {
+          if (err) {
+            console.error(err);
+            return res.send("slot追加失敗");
+          }
+
+          completed++;
+
+          if (completed === menuIds.length) {
+            res.redirect("/admin/slots?success=スロットを追加しました");
+          }
+        });
       });
     });
   });
@@ -1269,70 +1351,61 @@ addReservationToGoogleCalendar({
   });
 
   app.post("/admin/add-slots-bulk", requireAdmin, requireAdminCsrf, (req, res) => {
-    let {
-      menu_ids,
-      dates,
-      start_time,
-      end_time,
-      slot_minutes,
-      interval_minutes,
-      capacity
-    } = req.body;
-  
-    if (!menu_ids) {
-      return res.send("メニューを選択してください");
+    const menuIds = parsePositiveIntegerArray(req.body.menu_ids, MAX_SLOT_MENU_IDS);
+    const { dates, start_time, end_time } = req.body;
+    const slotMinutes = parseBoundedInteger(req.body.slot_minutes, 1, 24 * 60);
+    const intervalMinutes = parseBoundedInteger(req.body.interval_minutes, 0, 24 * 60);
+    const capacity = parseBoundedInteger(req.body.capacity, 1, MAX_SLOT_CAPACITY);
+
+    if (
+      !menuIds ||
+      typeof dates !== 'string' ||
+      !isValidTimeString(start_time) ||
+      !isValidTimeString(end_time) ||
+      timeToMinutes(start_time) >= timeToMinutes(end_time) ||
+      slotMinutes === null ||
+      intervalMinutes === null ||
+      slotMinutes + intervalMinutes <= 0 ||
+      capacity === null
+    ) {
+      return res.status(400).send("入力内容を確認してください。");
     }
-  
-    if (!Array.isArray(menu_ids)) {
-      menu_ids = [menu_ids];
-    }
-  
-    const dateList = (dates || "")
+
+    const rawDateList = dates
       .split(",")
       .map(d => d.trim())
       .filter(Boolean);
-      const slotMinutes = Number(slot_minutes || 0);
-      const intervalMinutes = Number(interval_minutes || 0);
+    const dateList = [...new Set(rawDateList)];
 
-      function timeToMinutes(time) {
-        const [hours, minutes] = time.split(":").map(Number);
-        return hours * 60 + minutes;
-      }
-      
-      function minutesToTime(totalMinutes) {
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-      
-        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-      }
+    if (
+      rawDateList.length === 0 ||
+      rawDateList.length > MAX_BULK_SLOT_DATES ||
+      dateList.some(date => !isValidDateString(date))
+    ) {
+      return res.status(400).send("入力内容を確認してください。");
+    }
 
-      const timeSlots = [];
+    const minutesToTime = totalMinutes => {
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    };
 
-if (slotMinutes > 0) {
-  let current = timeToMinutes(start_time);
-  const end = timeToMinutes(end_time);
+    const timeSlots = [];
+    let current = timeToMinutes(start_time);
+    const end = timeToMinutes(end_time);
 
-  while (current + slotMinutes <= end) {
-    const slotStart = minutesToTime(current);
-    const slotEnd = minutesToTime(current + slotMinutes);
+    while (current + slotMinutes <= end && timeSlots.length <= MAX_GENERATED_SLOTS) {
+      timeSlots.push({
+        start_time: minutesToTime(current),
+        end_time: minutesToTime(current + slotMinutes)
+      });
+      current += slotMinutes + intervalMinutes;
+    }
 
-    timeSlots.push({
-      start_time: slotStart,
-      end_time: slotEnd
-    });
-
-    current += slotMinutes + intervalMinutes;
-  }
-} else {
-  timeSlots.push({
-    start_time,
-    end_time
-  });
-}
-
-  
-    if (dateList.length === 0) {
-      return res.send("日付が選択されていません");
+    const total = dateList.length * menuIds.length * timeSlots.length;
+    if (timeSlots.length === 0 || total > MAX_GENERATED_SLOTS) {
+      return res.status(400).send("一度に作成できる予約枠数を超えています。");
     }
   
     const sql = `
@@ -1340,32 +1413,42 @@ if (slotMinutes > 0) {
       VALUES (?, ?, ?, ?, ?, 1)
     `;
   
-    const total = dateList.length * menu_ids.length * timeSlots.length;
     let completed = 0;
     let hasError = false;
-    
-    dateList.forEach(date => {
-      menu_ids.forEach(menu_id => {
-        timeSlots.forEach(slot => {
-          db.run(
-            sql,
-            [menu_id, date, slot.start_time, slot.end_time, capacity],
-            function (err) {
-              if (hasError) return;
-    
-              if (err) {
-                hasError = true;
-                console.error(err);
-                return res.send("複数slot追加失敗");
+
+    validateActiveMenuIds(menuIds, (menuErr, allMenusExist) => {
+      if (menuErr) {
+        console.error(menuErr);
+        return res.status(500).send("メニューの確認に失敗しました");
+      }
+
+      if (!allMenusExist) {
+        return res.status(400).send("入力内容を確認してください。");
+      }
+
+      dateList.forEach(date => {
+        menuIds.forEach(menuId => {
+          timeSlots.forEach(slot => {
+            db.run(
+              sql,
+              [menuId, date, slot.start_time, slot.end_time, capacity],
+              function (err) {
+                if (hasError) return;
+
+                if (err) {
+                  hasError = true;
+                  console.error(err);
+                  return res.send("複数slot追加失敗");
+                }
+
+                completed++;
+
+                if (completed === total) {
+                  res.redirect("/admin/slots?success=スロットを追加しました");
+                }
               }
-    
-              completed++;
-    
-              if (completed === total) {
-                res.redirect("/admin/slots?success=スロットを追加しました");
-              }
-            }
-          );
+            );
+          });
         });
       });
     });
@@ -1374,44 +1457,56 @@ if (slotMinutes > 0) {
     
 
   app.post('/admin/add-slots-pattern', requireAdmin, requireAdminCsrf, (req, res) => {
-    const {
-      menu_ids,
-      weekday,
-      start_date,
-      end_date,
-      start_time,
-      end_time,
-      capacity
-    } = req.body;
-  
-    if (!menu_ids || !weekday || !start_date || !end_date || !start_time || !end_time || !capacity) {
-      return res.redirect('/admin/slots?error=すべての項目を入力してください');
+    const menuIds = parsePositiveIntegerArray(req.body.menu_ids, MAX_SLOT_MENU_IDS);
+    const targetWeekday = parseBoundedInteger(req.body.weekday, 0, 6);
+    const { start_date, end_date, start_time, end_time } = req.body;
+    const capacity = parseBoundedInteger(req.body.capacity, 1, MAX_SLOT_CAPACITY);
+
+    if (
+      !menuIds ||
+      targetWeekday === null ||
+      !isValidDateString(start_date) ||
+      !isValidDateString(end_date) ||
+      !isValidTimeString(start_time) ||
+      !isValidTimeString(end_time) ||
+      timeToMinutes(start_time) >= timeToMinutes(end_time) ||
+      capacity === null
+    ) {
+      return res.status(400).send('入力内容を確認してください。');
     }
-  
-    const menuIds = Array.isArray(menu_ids) ? menu_ids : [menu_ids];
-    const targetWeekday = Number(weekday);
-  
+
+    const startDate = new Date(`${start_date}T00:00:00Z`);
+    const endDate = new Date(`${end_date}T00:00:00Z`);
+    const rangeDays = Math.floor((endDate - startDate) / (24 * 60 * 60 * 1000)) + 1;
+
+    if (rangeDays < 1) {
+      return res.status(400).send('開始日は終了日以前にしてください。');
+    }
+
+    if (rangeDays > MAX_SLOT_DATE_RANGE_DAYS) {
+      return res.status(400).send('指定できる期間を超えています。');
+    }
+
     const matchedDates = [];
-  
-    let current = new Date(start_date);
-    const end = new Date(end_date);
-  
-    while (current <= end) {
-      if (current.getDay() === targetWeekday) {
-        const yyyy = current.getFullYear();
-        const mm = String(current.getMonth() + 1).padStart(2, '0');
-        const dd = String(current.getDate()).padStart(2, '0');
-  
-        matchedDates.push(`${yyyy}-${mm}-${dd}`);
+
+    for (let offset = 0; offset < rangeDays; offset++) {
+      const current = new Date(startDate);
+      current.setUTCDate(startDate.getUTCDate() + offset);
+
+      if (current.getUTCDay() === targetWeekday) {
+        matchedDates.push(current.toISOString().slice(0, 10));
       }
-  
-      current.setDate(current.getDate() + 1);
     }
-  
+
     if (matchedDates.length === 0) {
       return res.redirect('/admin/slots?error=該当する曜日がありません');
     }
-  
+
+    const total = menuIds.length * matchedDates.length;
+    if (total > MAX_GENERATED_SLOTS) {
+      return res.status(400).send('一度に作成できる予約枠数を超えています。');
+    }
+
     const targets = [];
   
     menuIds.forEach(menuId => {
@@ -1422,10 +1517,6 @@ if (slotMinutes > 0) {
         });
       });
     });
-  
-    let completed = 0;
-    let hasError = false;
-    let duplicateFound = false;
   
     const checkSql = `
       SELECT id
@@ -1441,54 +1532,69 @@ if (slotMinutes > 0) {
       VALUES (?, ?, ?, ?, ?, 1)
     `;
   
-    targets.forEach(target => {
-      db.get(
-        checkSql,
-        [target.menu_id, target.date, start_time, end_time],
-        (err, existingSlot) => {
-          if (err) {
-            console.error('重複確認エラー:', err);
-            hasError = true;
-            completed++;
-            return checkComplete();
-          }
-  
-          if (existingSlot) {
-            duplicateFound = true;
-            completed++;
-            return checkComplete();
-          }
-  
-          db.run(
-            insertSql,
-            [target.menu_id, target.date, start_time, end_time, capacity],
-            (err) => {
-              if (err) {
-                console.error('曜日パターン追加エラー:', err);
-                hasError = true;
-              }
-  
+    validateActiveMenuIds(menuIds, (menuErr, allMenusExist) => {
+      if (menuErr) {
+        console.error(menuErr);
+        return res.status(500).send('メニューの確認に失敗しました');
+      }
+
+      if (!allMenusExist) {
+        return res.status(400).send('入力内容を確認してください。');
+      }
+
+      let completed = 0;
+      let hasError = false;
+      let duplicateFound = false;
+
+      targets.forEach(target => {
+        db.get(
+          checkSql,
+          [target.menu_id, target.date, start_time, end_time],
+          (err, existingSlot) => {
+            if (err) {
+              console.error('重複確認エラー:', err);
+              hasError = true;
               completed++;
-              checkComplete();
+              return checkComplete();
             }
-          );
+
+            if (existingSlot) {
+              duplicateFound = true;
+              completed++;
+              return checkComplete();
+            }
+
+            db.run(
+              insertSql,
+              [target.menu_id, target.date, start_time, end_time, capacity],
+              (err) => {
+                if (err) {
+                  console.error('曜日パターン追加エラー:', err);
+                  hasError = true;
+                }
+
+                completed++;
+                checkComplete();
+              }
+            );
+          }
+        );
+      });
+
+      function checkComplete() {
+        if (completed !== targets.length) return;
+
+        if (hasError) {
+          return res.redirect('/admin/slots?error=曜日パターン追加中にエラーが発生しました');
         }
-      );
+
+        if (duplicateFound) {
+          return res.redirect('/admin/slots?error=一部、重複するスロットがありました');
+        }
+
+        return res.redirect('/admin/slots?success=曜日パターンを追加しました');
+      }
     });
-  
-    function checkComplete() {
-      if (completed !== targets.length) return;
-  
-      if (hasError) {
-        return res.redirect('/admin/slots?error=曜日パターン追加中にエラーが発生しました');
-      }
-  
-      if (duplicateFound) {
-        return res.redirect('/admin/slots?error=一部、重複するスロットがありました');
-      }
-  
-      return res.redirect('/admin/slots?success=曜日パターンを追加しました');
-    }
   });
 
   
