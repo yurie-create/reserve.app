@@ -340,6 +340,15 @@ const MAX_SLOT_MENU_IDS = 20;
 const MAX_BULK_SLOT_DATES = 62;
 const MAX_SLOT_DATE_RANGE_DAYS = 366;
 const MAX_GENERATED_SLOTS = 300;
+const MONTHLY_ENTRY_COURSES = new Set([
+  'elementary_wed',
+  'elementary_fri',
+  'elementary_twice',
+  'junior_wed',
+  'junior_fri',
+  'junior_twice'
+]);
+const MONTHLY_ENTRY_SNS_PERMISSIONS = new Set(['ok', 'ng']);
 
 function parseBoundedInteger(value, min, max) {
   if (typeof value !== 'string' || !/^\d+$/.test(value)) {
@@ -375,6 +384,21 @@ function isValidDateString(value) {
 
   const date = new Date(`${value}T00:00:00Z`);
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function isValidBirthDate(value) {
+  if (!isValidDateString(value)) {
+    return false;
+  }
+
+  const todayInJapan = new Date(Date.now() + 9 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  return value <= todayInJapan;
+}
+
+function isValidMonthString(value) {
+  return typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
 }
 
 function isValidTimeString(value) {
@@ -2631,132 +2655,166 @@ addReservationToGoogleCalendar({
       return res.redirect('/members/login');
     }
   
-    const {
-      school_name,
-      birth_date,
-      address,
-      course,
-      start_month,
-      sns_permission,
-      agree_rule
-    } = req.body;
-  
-    // 規約チェック
-    if (!agree_rule) {
-      return res.send('規約への同意が必要です');
+    const schoolName = validateRequiredString(req.body.school_name, 100);
+    const address = validateRequiredString(req.body.address, 300);
+    const { birth_date, course, start_month, sns_permission, agree_rule } = req.body;
+
+    if (!schoolName || !address) {
+      return res.status(400).send('入力内容を確認してください。');
     }
-  
-    // 会員情報取得
-    const memberSql = `
-      SELECT *
-      FROM members
-      WHERE id = ?
+
+    if (!isValidBirthDate(birth_date)) {
+      return res.status(400).send('生年月日を確認してください。');
+    }
+
+    if (
+      typeof course !== 'string' ||
+      !MONTHLY_ENTRY_COURSES.has(course) ||
+      !isValidMonthString(start_month) ||
+      typeof sns_permission !== 'string' ||
+      !MONTHLY_ENTRY_SNS_PERMISSIONS.has(sns_permission)
+    ) {
+      return res.status(400).send('入力内容を確認してください。');
+    }
+
+    if (agree_rule !== 'yes') {
+      return res.status(400).send('規約への同意が必要です');
+    }
+
+    const memberId = req.session.memberId;
+    const memberSql = `SELECT * FROM members WHERE id = ?`;
+    const checkSql = `SELECT id FROM monthly_entries WHERE member_id = ?`;
+    const insertSql = `
+      INSERT INTO monthly_entries (
+        member_id,
+        school_name,
+        birth_date,
+        address,
+        course,
+        start_month,
+        sns_permission
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-  
-    db.get(memberSql, [req.session.memberId], (err, member) => {
-      if (err) {
-        console.error(err);
-        return res.send('会員情報の取得に失敗しました');
-      }
-  
-      if (!member) {
-        return res.send('会員情報が見つかりません');
-      }
-  
-      // すでに入会済みかチェック
-      const checkSql = `
-        SELECT id
-        FROM monthly_entries
-        WHERE member_id = ?
-      `;
-  
-      db.get(checkSql, [req.session.memberId], (err, existingEntry) => {
-        if (err) {
-          console.error(err);
-          return res.send('入会情報の確認に失敗しました');
+
+    function sendMonthlyEntryEmail(member) {
+      let courseLabel = course;
+      if (course === 'elementary_wed') courseLabel = '小学生週1回（水曜日16:00〜17:00）';
+      if (course === 'elementary_fri') courseLabel = '小学生週1回（金曜日17:00〜18:00）';
+      if (course === 'elementary_twice') courseLabel = '小学生週2回';
+      if (course === 'junior_wed') courseLabel = '中学生週1回（水曜日17:30〜18:30）';
+      if (course === 'junior_fri') courseLabel = '中学生週1回（金曜日18:30〜19:30）';
+      if (course === 'junior_twice') courseLabel = '中学生週2回';
+
+      const snsPermissionLabel = sns_permission === 'ok' ? '掲載可' : '掲載不可';
+
+      resend.emails.send({
+        from: "SIEG SPORTS <info@sieg-sports.com>",
+        to: 'yurie6312@gmail.com',
+        subject: '【入会申請】新しい月謝会員の申請がありました',
+        html: `
+          <h2>新しい入会申請がありました</h2>
+
+          <h3>■ 会員情報</h3>
+          <p><strong>名前</strong>：${escapeHtmlForEmail(member.name || '')}</p>
+          <p><strong>ふりがな</strong>：${escapeHtmlForEmail(member.kana || '')}</p>
+          <p><strong>保護者名</strong>：${escapeHtmlForEmail(member.guardian_name || 'なし')}</p>
+          <p><strong>メール</strong>：${escapeHtmlForEmail(member.email || '')}</p>
+          <p><strong>電話</strong>：${escapeHtmlForEmail(member.phone || '')}</p>
+          <p><strong>学年 / 年齢</strong>：${escapeHtmlForEmail(member.grade || '')}</p>
+
+          <h3>■ 入会内容</h3>
+          <p><strong>学校名</strong>：${escapeHtmlForEmail(schoolName)}</p>
+          <p><strong>生年月日</strong>：${escapeHtmlForEmail(birth_date)}</p>
+          <p><strong>住所</strong>：${escapeHtmlForEmailWithBreaks(address)}</p>
+          <p><strong>コース</strong>：${escapeHtmlForEmail(courseLabel)}</p>
+          <p><strong>入会月</strong>：${escapeHtmlForEmail(start_month)}</p>
+          <p><strong>SNS掲載</strong>：${escapeHtmlForEmail(snsPermissionLabel)}</p>
+        `
+      }).then((result) => {
+        console.log('入会申請メール送信成功:', result);
+      }).catch((error) => {
+        console.error('入会申請メール送信失敗:', error);
+      });
+    }
+
+    const transactionDb = db.createConnection();
+
+    function closeTransactionConnection(callback) {
+      transactionDb.close((closeErr) => {
+        if (closeErr) {
+          console.error('月謝申込用DB接続のクローズに失敗しました:', closeErr);
         }
-  
-        if (existingEntry) {
-          return res.send('すでに月謝会員として登録されています。変更がある場合はご連絡ください。');
+        callback();
+      });
+    }
+
+    function rollback(message, error, statusCode = 500) {
+      if (error) {
+        console.error('月謝申込トランザクションエラー:', error);
+      }
+
+      transactionDb.run('ROLLBACK', (rollbackErr) => {
+        if (rollbackErr) {
+          console.error('月謝申込のロールバックに失敗しました:', rollbackErr);
         }
-  
-        // 入会情報保存
-        const insertSql = `
-  INSERT INTO monthly_entries (
-    member_id,
-    school_name,
-    birth_date,
-    address,
-    course,
-    start_month,
-    sns_permission
-  ) VALUES (?, ?, ?, ?, ?, ?, ?)
-`;
-        db.run(
-          insertSql,
-          [
-            req.session.memberId,
-            school_name,
-            birth_date,
-            address,
-            course,
-            start_month,
-            sns_permission
-          ],
-          function (err) {
-            if (err) {
-              console.error(err);
-              return res.send('入会申請に失敗しました');
-            }
-  
-            // コース表示用
-            let courseLabel = course;
-            if (course === 'elementary_wed') courseLabel = '小学生週1回（水曜日16:00〜17:00）';
-            if (course === 'elementary_fri') courseLabel = '小学生週1回（金曜日17:00〜18:00）';
-            if (course === 'elementary_twice') courseLabel = '小学生週2回';
-            if (course === 'junior_wed') courseLabel = '中学生週1回（水曜日17:30〜18:30）';
-            if (course === 'junior_fri') courseLabel = '中学生週1回（金曜日18:30〜19:30）';
-            if (course === 'junior_twice') courseLabel = '中学生週2回';
-  
-            // SNS掲載表示用
-            let snsPermissionLabel = sns_permission;
-            if (sns_permission === 'ok') snsPermissionLabel = '掲載可';
-            if (sns_permission === 'limited') snsPermissionLabel = '顔が分からない形なら可';
-            if (sns_permission === 'ng') snsPermissionLabel = '掲載不可';
-  
-            // 管理者メール送信
-            resend.emails.send({
-              from: "SIEG SPORTS <info@sieg-sports.com>",
-              to: 'yurie6312@gmail.com',
-              subject: '【入会申請】新しい月謝会員の申請がありました',
-              html: `
-                <h2>新しい入会申請がありました</h2>
-  
-                <h3>■ 会員情報</h3>
-                <p><strong>名前</strong>：${escapeHtmlForEmail(member.name || '')}</p>
-                <p><strong>ふりがな</strong>：${escapeHtmlForEmail(member.kana || '')}</p>
-                <p><strong>保護者名</strong>：${escapeHtmlForEmail(member.guardian_name || 'なし')}</p>
-                <p><strong>メール</strong>：${escapeHtmlForEmail(member.email || '')}</p>
-                <p><strong>電話</strong>：${escapeHtmlForEmail(member.phone || '')}</p>
-                <p><strong>学年 / 年齢</strong>：${escapeHtmlForEmail(member.grade || '')}</p>
-  
-                <h3>■ 入会内容</h3>
-                <p><strong>学校名</strong>：${escapeHtmlForEmail(school_name)}</p>
-                <p><strong>生年月日</strong>：${escapeHtmlForEmail(birth_date)}</p>
-                <p><strong>住所</strong>：${escapeHtmlForEmailWithBreaks(address)}</p>
-                <p><strong>コース</strong>：${escapeHtmlForEmail(courseLabel)}</p>
-                <p><strong>入会月</strong>：${escapeHtmlForEmail(start_month)}</p>
-                <p><strong>SNS掲載</strong>：${escapeHtmlForEmail(snsPermissionLabel)}</p>
-              `
-            }).then((result) => {
-              console.log('入会申請メール送信成功:', result);
-            }).catch((error) => {
-              console.error('入会申請メール送信失敗:', error);
-            });
-  
-            res.redirect('/monthly-entry/complete');
+
+        closeTransactionConnection(() => {
+          res.status(statusCode).send(message);
+        });
+      });
+    }
+
+    transactionDb.run('BEGIN IMMEDIATE', (beginErr) => {
+      if (beginErr) {
+        console.error('月謝申込トランザクション開始エラー:', beginErr);
+        return closeTransactionConnection(() => {
+          res.status(500).send('入会申請に失敗しました');
+        });
+      }
+
+      transactionDb.get(memberSql, [memberId], (memberErr, member) => {
+        if (memberErr) {
+          return rollback('会員情報の取得に失敗しました', memberErr);
+        }
+
+        if (!member) {
+          return rollback('会員情報が見つかりません', null, 404);
+        }
+
+        transactionDb.get(checkSql, [memberId], (checkErr, existingEntry) => {
+          if (checkErr) {
+            return rollback('入会情報の確認に失敗しました', checkErr);
           }
-        );
+
+          if (existingEntry) {
+            return rollback(
+              'すでに月謝会員として登録されています。変更がある場合はご連絡ください。',
+              null,
+              200
+            );
+          }
+
+          transactionDb.run(
+            insertSql,
+            [memberId, schoolName, birth_date, address, course, start_month, sns_permission],
+            function (insertErr) {
+              if (insertErr) {
+                return rollback('入会申請に失敗しました', insertErr);
+              }
+
+              transactionDb.run('COMMIT', (commitErr) => {
+                if (commitErr) {
+                  return rollback('入会申請に失敗しました', commitErr);
+                }
+
+                closeTransactionConnection(() => {
+                  sendMonthlyEntryEmail(member);
+                  res.redirect('/monthly-entry/complete');
+                });
+              });
+            }
+          );
+        });
       });
     });
   });
