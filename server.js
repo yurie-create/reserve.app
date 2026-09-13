@@ -349,6 +349,9 @@ const MONTHLY_ENTRY_COURSES = new Set([
   'junior_twice'
 ]);
 const MONTHLY_ENTRY_SNS_PERMISSIONS = new Set(['ok', 'ng']);
+const MAX_TRAINING_LOG_TITLE_LENGTH = 200;
+const MAX_TRAINING_LOG_SUBTITLE_LENGTH = 200;
+const MAX_TRAINING_LOG_BODY_LENGTH = 10000;
 
 function parseBoundedInteger(value, min, max) {
   if (typeof value !== 'string' || !/^\d+$/.test(value)) {
@@ -399,6 +402,23 @@ function isValidBirthDate(value) {
 
 function isValidMonthString(value) {
   return typeof value === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+
+function validateTrainingLogInput(input) {
+  const title = validateRequiredString(input.title, MAX_TRAINING_LOG_TITLE_LENGTH);
+  const subtitle = validateOptionalString(input.subtitle, MAX_TRAINING_LOG_SUBTITLE_LENGTH);
+  const body = validateOptionalString(input.body, MAX_TRAINING_LOG_BODY_LENGTH);
+
+  if (!isValidDateString(input.date) || !title || !subtitle.valid || !body.valid) {
+    return null;
+  }
+
+  return {
+    date: input.date,
+    title,
+    subtitle: subtitle.value,
+    body: body.value
+  };
 }
 
 function isValidTimeString(value) {
@@ -3588,14 +3608,18 @@ addReservationToGoogleCalendar({
     }
   
     const memberId = req.session.memberId;
-    const { date, title, subtitle, body } = req.body;
+    const input = validateTrainingLogInput(req.body);
+
+    if (!input) {
+      return res.status(400).send("入力内容を確認してください。");
+    }
   
     db.run(
       `
       INSERT INTO training_logs (member_id, date, title, subtitle, body)
       VALUES (?, ?, ?, ?, ?)
       `,
-      [memberId, date, title, subtitle, body],
+      [memberId, input.date, input.title, input.subtitle, input.body],
       function (err) {
         if (err) {
           console.error(err);
@@ -3682,8 +3706,12 @@ addReservationToGoogleCalendar({
     }
   
     const memberId = req.session.memberId;
-    const logId = req.params.id;
-    const { date, title, subtitle, body } = req.body;
+    const logId = parseBoundedInteger(req.params.id, 1, Number.MAX_SAFE_INTEGER);
+    const input = validateTrainingLogInput(req.body);
+
+    if (logId === null || !input) {
+      return res.status(400).send("入力内容を確認してください。");
+    }
   
     db.run(
       `
@@ -3691,11 +3719,15 @@ addReservationToGoogleCalendar({
       SET date = ?, title = ?, subtitle = ?, body = ?
       WHERE id = ? AND member_id = ?
       `,
-      [date, title, subtitle, body, logId, memberId],
+      [input.date, input.title, input.subtitle, input.body, logId, memberId],
       function (err) {
         if (err) {
           console.error(err);
           return res.send("練習日誌の更新中にエラーが発生しました");
+        }
+
+        if (this.changes !== 1) {
+          return res.status(404).send("練習日誌が見つかりません");
         }
   
         res.redirect(`/mypage/training-logs/${logId}`);
