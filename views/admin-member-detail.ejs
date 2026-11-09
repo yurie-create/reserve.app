@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>会員詳細 | 管理画面</title>
+  <link rel="stylesheet" href="/css/admin-members.css">
+</head>
+<body>
+  <main class="page">
+    <a href="/admin/members" class="top-link">← 会員一覧へ戻る</a>
+    <h1>会員詳細</h1>
+    <section class="info-card" aria-labelledby="basic-title">
+      <h2 id="basic-title">基本情報</h2>
+      <dl>
+        <% const basicFields = [
+          ['会員名', member.name], ['ふりがな', member.kana],
+          ['学年 / 年齢', member.grade], ['保護者名', member.guardian_name],
+          ['メール', member.email], ['電話番号', member.phone], ['備考', member.note]
+        ]; %>
+        <% basicFields.forEach(([label, value]) => { %>
+          <div class="info-row"><dt><%= label %></dt><dd><%= value || '未登録' %></dd></div>
+        <% }) %>
+      </dl>
+    </section>
+    <section class="info-card" aria-labelledby="monthly-title">
+      <h2 id="monthly-title">月謝入会情報（最新の登録）</h2>
+      <% if (monthlyEntry) { %>
+        <% const snsLabels = new Map([['ok', '掲載可'], ['limited', '顔が分からない形なら可'], ['ng', '掲載不可']]); %>
+        <% const monthlyFields = [
+          ['コース', monthlyEntry.course ? formatCourse(monthlyEntry.course) : '未登録'],
+          ['入会月', monthlyEntry.start_month], ['学校名', monthlyEntry.school_name],
+          ['生年月日', monthlyEntry.birth_date], ['住所', monthlyEntry.address],
+          ['SNS掲載許可', snsLabels.get(monthlyEntry.sns_permission) || monthlyEntry.sns_permission],
+          ['申請日時', monthlyEntry.created_at]
+        ]; %>
+        <dl>
+          <% monthlyFields.forEach(([label, value]) => { %>
+            <div class="info-row"><dt><%= label %></dt><dd><%= value || '未登録' %></dd></div>
+          <% }) %>
+        </dl>
+      <% } else { %>
+        <p>月謝登録なし</p>
+      <% } %>
+    </section>
+    <div class="actions">
+      <a href="/admin/members/<%= member.id %>/edit" class="button">会員編集</a>
+      <form action="/admin/members/<%= member.id %>/delete" method="POST" onsubmit="return confirm('この会員を削除しますか？')">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="button delete-button">会員削除</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

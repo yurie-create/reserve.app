@@ -1,0 +1,30 @@
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px; background: #f7f7f7; color: #222; font-family: sans-serif; line-height: 1.6; }
+.page { max-width: 800px; margin: 0 auto; }
+h1 { margin: 16px 0 24px; font-size: 28px; }
+h2 { margin: 0 0 16px; font-size: 20px; }
+a { color: #2563eb; }
+a:focus-visible, button:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+.top-link { display: inline-block; padding: 10px 0; font-weight: 600; text-decoration: none; }
+.member-list { margin: 0; padding: 0; list-style: none; }
+.member-list, .info-card, .empty { background: #fff; border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.member-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid #eee; }
+.member-row:last-child { border-bottom: 0; }
+.member-name { min-width: 0; padding: 10px 0; font-weight: 600; overflow-wrap: anywhere; }
+.button { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #374151; font: inherit; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.button:hover { background: #f3f4f6; }
+.delete-button { border-color: #dc2626; color: #b91c1c; }
+.delete-button:hover { background: #fef2f2; }
+.info-card, .empty { margin-bottom: 24px; padding: 24px; overflow-wrap: anywhere; }
+dl { margin: 0; }
+.info-row { padding: 12px 0; border-bottom: 1px solid #eee; }
+.info-row:last-child { border-bottom: 0; }
+dt { color: #666; font-size: 14px; }
+dd { margin: 4px 0 0; white-space: pre-wrap; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.actions form { margin: 0; }
+@media (max-width: 600px) {
+  body { padding: 16px; }
+  h1 { font-size: 24px; }
+  .info-card { padding: 20px; }
+}

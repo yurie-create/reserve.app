@@ -18,9 +18,50 @@
       margin: 0 auto;
     }
 
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
     h1 {
       font-size: 28px;
-      margin-bottom: 24px;
+      margin: 0;
+    }
+
+    .logout-form {
+      margin: 0 0 0 auto;
+    }
+
+    .logout-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 16px;
+      box-sizing: border-box;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      background: #fff;
+      color: #374151;
+      font: inherit;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .logout-button:hover {
+      background: #f3f4f6;
+    }
+
+    .logout-button:focus-visible {
+      outline: 2px solid #374151;
+      outline-offset: 3px;
     }
 
     .menu {
@@ -50,7 +91,19 @@
 <body>
   <div class="page">
 
-    <h1>管理画面</h1>
+    <header class="admin-header">
+      <h1>管理画面</h1>
+      <form action="/admin/logout" method="POST" class="logout-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="submit" class="logout-button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <path d="m16 17 5-5-5-5M21 12H9"></path>
+          </svg>
+          <span>ログアウト</span>
+        </button>
+      </form>
+    </header>
 
     <div class="menu">
       <a href="/admin/reservations" class="card">
@@ -76,14 +129,6 @@
     
 
       
-    </div>
-
-    <div style="margin-top:20px;">
-        <form action="/admin/logout" method="POST" style="margin:0;">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <button type="submit" class="back-button" style="background:none;border:none;padding:0;color:#00e;text-decoration:underline;cursor:pointer;font:inherit;">ログアウト</button>
-        </form>
-      </div>
     </div>
 
   </div>

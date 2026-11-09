@@ -3160,14 +3160,7 @@ addReservationToGoogleCalendar({
 
   app.get('/admin/members', requireAdmin,(req, res) => {
     const sql = `
-      SELECT 
-        m.*,
-        me.course,
-        me.start_month
-      FROM members m
-      LEFT JOIN monthly_entries me
-        ON m.id = me.member_id
-      ORDER BY m.id DESC
+      SELECT id, name FROM members ORDER BY id DESC
     `;
   
     db.all(sql, [], (err, members) => {
@@ -3177,6 +3170,34 @@ addReservationToGoogleCalendar({
       }
   
       res.render('admin-members', { members });
+    });
+  });
+
+  app.get('/admin/members/:id', requireAdmin, (req, res) => {
+    const { id } = req.params;
+    if (!/^[1-9]\d*$/.test(id)) {
+      return res.status(404).send('会員が見つかりません');
+    }
+
+    db.get(`SELECT id, name, kana, grade, guardian_name, email, phone, note
+      FROM members WHERE id = ?`, [id], (err, member) => {
+      if (err) {
+        console.error('会員詳細取得エラー:', err);
+        return res.status(500).send('会員情報の取得に失敗しました');
+      }
+      if (!member) {
+        return res.status(404).send('会員が見つかりません');
+      }
+
+      db.get(`SELECT school_name, birth_date, address, course, start_month,
+        sns_permission, created_at FROM monthly_entries
+        WHERE member_id = ? ORDER BY id DESC LIMIT 1`, [id], (monthlyErr, monthlyEntry) => {
+        if (monthlyErr) {
+          console.error('月謝情報取得エラー:', monthlyErr);
+          return res.status(500).send('月謝情報の取得に失敗しました');
+        }
+        res.render('admin-member-detail', { member, monthlyEntry });
+      });
     });
   });
 
