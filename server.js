@@ -3189,8 +3189,8 @@ addReservationToGoogleCalendar({
         return res.status(404).send('会員が見つかりません');
       }
 
-      db.get(`SELECT school_name, birth_date, address, course, start_month,
-        sns_permission, created_at FROM monthly_entries
+      // Older databases may lack optional display columns such as created_at.
+      db.get(`SELECT * FROM monthly_entries
         WHERE member_id = ? ORDER BY id DESC LIMIT 1`, [id], (monthlyErr, monthlyEntry) => {
         if (monthlyErr) {
           console.error('月謝情報取得エラー:', monthlyErr);
